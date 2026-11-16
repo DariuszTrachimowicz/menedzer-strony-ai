@@ -4,31 +4,72 @@ Tags: ai, mcp, oauth, administration
 Requires at least: 7.1
 Requires PHP: 8.2
 Tested up to: 7.1
-Stable tag: 2.4.1
+Stable tag: 2.4.2
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Połączenia AI i kontrolowane zarządzanie WordPressem przez jawne uprawnienia, podgląd zmian i cofanie z kopii.
+Połącz WordPress z Claude i innymi asystentami AI. Decydujesz, co mogą czytać i zmieniać, a każdą zmianę możesz sprawdzić i cofnąć.
 
 == Description ==
 
+Menedżer Strony AI łączy Twoją stronę z asystentem AI, na przykład z Claude. Asystent czyta treści i przygotowuje szkice, a za Twoją zgodą publikuje wpisy i porządkuje stronę. Ustalasz, ile mu wolno, i w każdej chwili możesz ten dostęp odebrać.
+
+Nie musisz już przeklejać tekstów między czatem a panelem WordPressa. Piszesz asystentowi, co ma zrobić, a każdą zmianę widzisz w podglądzie i w historii.
+
+= Co zyskujesz =
+
+* Łączysz stronę z Claude w kilka kliknięć: wklejasz adres, logujesz się do WordPressa i zatwierdzasz dostęp. Nie kopiujesz haseł ani kluczy.
+* Sam wybierasz zakres: odczyt publicznych treści, praca na szkicach, publikowanie albo pełne zarządzanie stroną. Ustalasz też, do kiedy zgoda obowiązuje.
+* Widzisz zmianę przed zapisem, bo asystent najpierw pokazuje, co zamierza zrobić. Po wykonaniu wtyczka sprawdza, czy wynik zgadza się z planem.
+* Możesz się wycofać. Przed zmianą powstaje kopia w prywatnym magazynie poza katalogiem publicznym, a zmiany treści, ustawień i plików da się z niej cofnąć.
+* W zakładce Historia sprawdzasz, które połączenie co zrobiło i z jakim wynikiem. Wpisy są przechowywane przez 30 dni.
+* Każde połączenie odcinasz jednym przyciskiem. Możesz też cofnąć wszystkie naraz, na przykład po odtworzeniu strony z kopii.
+* Nie płacisz za dodatkowy klucz API. Asystent pracuje na Twoim koncie w aplikacji AI, a wtyczka nie wysyła telemetrii do autora.
+* Pokazujesz odwiedzającym popup, który bierze czcionki, kolory i wygląd przycisku z Twojej strony. Treść piszesz w edytorze, a wynik oglądasz w podglądzie przed włączeniem.
+* Nowe wersje instalujesz ze zwykłego ekranu aktualizacji WordPressa.
+
+= Do czego się przydaje =
+
+* Pisanie i poprawianie wpisów oraz stron bez kopiowania tekstu z czatu.
+* Przegląd treści: asystent wyszukuje wpisy, czyta je i wskazuje, co wymaga poprawy.
+* Porządki w kategoriach, tagach i menu.
+* Prace administracyjne przy pełnym dostępie: ustawienia, media, wtyczki i motywy.
+
+= Jak to działa =
+
+1. W Claude otwierasz Customize, Connectors i Add custom connector, a potem wklejasz adres ze strony Start wtyczki.
+2. Logujesz się do WordPressa i na ekranie zgody wybierasz zakres oraz termin dostępu.
+3. Piszesz asystentowi, co ma zrobić. Przy zmianach dostajesz podgląd przed wykonaniem.
+4. W panelu wtyczki sprawdzasz historię i w razie potrzeby cofasz zmianę albo dostęp.
+
+= Z czym działa =
+
+* Claude w przeglądarce, Claude Desktop i Claude Code: logowanie w aplikacji, bez poświadczeń.
+* Codex, Gemini CLI i inne programy obsługujące MCP: ręczne poświadczenie albo most stdio. Instrukcje są w zakładce Pomoc.
+
+Wtyczka działa także na hostingu, który przejmuje katalog `/.well-known`. Sama wybiera wtedy adresy logowania, które docierają do WordPressa.
+
+= Wymagania =
+
+* WordPress 7.1 lub nowszy i PHP 8.2 lub nowszy.
+* Strona pod adresem HTTPS.
+* Prywatny katalog na kopie poza katalogiem publicznym strony (stała `ASM_PRIVATE_STORAGE`).
+
 Autor: Dariusz Trachimowicz, https://d-x.pl/
-Produkt i aktualizacje: https://d-x.pl/wtyczki/menedzer-strony-ai/
-
-Jedna wtyczka udostępnia Połączenia AI oraz natywne API asm/v2. Prosta ścieżka Claude obejmuje skopiowanie adresu, logowanie WordPressa i jawną zgodę. Wydanie wymaga WordPress 7.1 i PHP 8.2 lub nowszych oraz HTTPS. To najniższe przetestowane wersje; zgodność WordPress 5.6 i PHP 7.4 nie została potwierdzona. Zachowany warunek ładowania chroni starsze PHP przed uruchomieniem modułu MCP, ale nie oznacza wsparcia tej konfiguracji.
-
-Zakresy MCP: publiczny odczyt, szkice, publikowanie i pełne zarządzanie stroną. Pełny zakres udostępnia istniejący kontrakt asm/v2, z uprawnieniami akcji i własnością operacji oraz stagingu. Dostęp działa jako właściciel połączenia i sprawdza jego bieżące uprawnienia. Pełny dostęp natywnego API administrator nadaje świadomie wybranemu kontu. Aktywacja nie nadaje go automatycznie.
+Opis produktu: https://d-x.pl/wtyczki/menedzer-strony-ai/
 
 == Installation ==
 
-1. Wykonaj kopię bazy, plików i prywatnego magazynu ASM.
-2. Wgraj ai-site-manager-2.4.1.zip jako aktualizację istniejącego Menedżera Strony AI.
-3. Ustaw prywatny magazyn poza katalogiem publicznym według README.md.
-4. Otwórz Ustawienia, Menedżer Strony AI.
-5. Dla Claude skopiuj adres i dodaj własne połączenie w aplikacji. Zaloguj się do tej strony i zatwierdź wybrany zakres.
-6. Sprawdź rzeczywisty odczyt wp_site_status.
+1. Zrób kopię bazy danych i plików strony.
+2. W panelu WordPressa wybierz Wtyczki, Dodaj wtyczkę, Wyślij wtyczkę na serwer i wskaż plik `ai-site-manager-2.4.2.zip`. Przy aktualizacji wybierz zastąpienie obecnej wersji.
+3. W pliku `wp-config.php` ustaw stałą `ASM_PRIVATE_STORAGE` na katalog poza katalogiem publicznym. Przykład jest w pliku README.md.
+4. Otwórz Ustawienia, Menedżer Strony AI. Nagłówek pokaże, czy HTTPS i magazyn kopii są gotowe.
+5. Skopiuj adres ze strony Start i dodaj połączenie w Claude. Zaloguj się do strony i zatwierdź wybrany zakres.
+6. Poproś asystenta o odczyt stanu strony. Połączenie pojawi się na liście w zakładce Połączenia.
 
-Migracja zachowuje stare dane MCP i identyfikator instalacji. Starą osobną wtyczkę ASM MCP Connect wyłącz dopiero po odbiorze nowego modułu. Nie kasuj jej plików ani tabel. Routing /.well-known musi przekazywać metadane OAuth do WordPressa; instrukcja Nginx i Apache jest w help/pl/update.md.
+Pełne zarządzanie wymaga dodatkowego kroku: w zakładce Uprawnienia nadaj pełny dostęp swojemu kontu administratora. Aktywacja wtyczki nie nadaje go sama.
+
+Kolejne wersje instalujesz z ekranu aktualizacji WordPressa.
 
 == Frequently Asked Questions ==
 
@@ -48,7 +89,9 @@ Pomoc opisuje zdalne OAuth, ręczny Bearer, most stdio i CLI. Odbiór konkretneg
 Dokumentacja produktu: https://d-x.pl/wtyczki/menedzer-strony-ai/
 Pomoc lokalna: help/pl i ekran Pomoc. Nie przekazuj haseł, tokenów ani kodów logowania przy zgłaszaniu problemu.
 
-== Privacy ==
+== Other Notes ==
+
+= Prywatność =
 
 Wtyczka przechowuje właściciela, opis połączenia, zakres, termin, hashe poświadczeń i metadane operacji. Jawne tokeny i hasła nie są zapisywane w audycie. Natywne payloady operacji są szyfrowane, a kopie znajdują się w prywatnym magazynie.
 Jednorazowy kontekst zgody zapisuje wyłącznie hashe identyfikatora, sesji i parametrów żądania oraz właściciela i czas. Jest ważny 10 minut; wygasłe rekordy usuwa codzienny cleanup po dodatkowym 10-minutowym oknie.
@@ -58,6 +101,10 @@ Audyt i zakończone operacje MCP są przechowywane przez 30 dni. Operacje w toku
 Wyniki narzędzi trafiają do aplikacji klienta i mogą być przetwarzane przez dostawcę modelu. Pobieranie dokumentów tożsamości jest ograniczone do dwóch oficjalnych adresów HTTPS Claude. Wtyczka nie wymaga kluczy dostawcy modelu i nie wysyła telemetrii do autora.
 
 == Changelog ==
+
+= 2.4.2, 16 listopada 2026 =
+
+* Okno „Zobacz szczegóły” na liście wtyczek pokazuje opis, instalację, pytania i rejestr zmian z ilustracją wtyczki.
 
 = 2.4.1, 16 listopada 2026 =
 

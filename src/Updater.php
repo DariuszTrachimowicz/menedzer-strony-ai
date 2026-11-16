@@ -23,6 +23,7 @@ final class Updater
     {
         // Nazwa filtra pochodzi z hosta w nagłówku Update URI pliku wtyczki.
         add_filter('update_plugins_d-x.pl', array(self::class, 'check'), 10, 3);
+        add_filter('plugins_api', array(self::class, 'info'), 10, 3);
     }
 
     /** @return array{version:string,package:string,url:string}|null */
@@ -76,6 +77,90 @@ final class Updater
             'package' => $release['package'],
             'requires_php' => '8.2',
         );
+    }
+
+    // Okno „Zobacz szczegóły” na liście wtyczek. Treść pochodzi z readme.txt, żeby opis miał jedno źródło.
+    /** @param mixed $result @param mixed $args */
+    public static function info($result, $action, $args)
+    {
+        if ($action !== 'plugin_information' || ($args->slug ?? '') !== 'ai-site-manager') {
+            return $result;
+        }
+        $release = self::release();
+        return (object) array(
+            'name' => 'Menedżer Strony AI',
+            'slug' => 'ai-site-manager',
+            'version' => $release['version'] ?? ASM_VERSION,
+            'author' => '<a href="https://d-x.pl/">Dariusz Trachimowicz</a>',
+            'homepage' => 'https://d-x.pl/wtyczki/menedzer-strony-ai/',
+            'requires' => '7.1',
+            'tested' => '7.1',
+            'requires_php' => '8.2',
+            'download_link' => $release['package'] ?? '',
+            'sections' => self::sections(),
+            'banners' => array(
+                'low' => plugins_url('assets/banner-772x250.jpg', ASM_PLUGIN_FILE),
+                'high' => plugins_url('assets/banner-1544x500.jpg', ASM_PLUGIN_FILE),
+            ),
+        );
+    }
+
+    /** @return array<string,string> */
+    public static function sections(): array
+    {
+        $text = str_replace("\r\n", "\n", (string) file_get_contents(ASM_PLUGIN_DIR . 'readme.txt'));
+        $map = array('Description' => 'description', 'Installation' => 'installation', 'Frequently Asked Questions' => 'faq', 'Other Notes' => 'other_notes', 'Changelog' => 'changelog');
+        $parts = preg_split('/^== (.+?) ==$/m', $text, -1, PREG_SPLIT_DELIM_CAPTURE) ?: array();
+        $sections = array();
+        for ($i = 1; $i + 1 < count($parts); $i += 2) {
+            $key = $map[trim($parts[$i])] ?? null;
+            if ($key) {
+                $sections[$key] = self::html($parts[$i + 1]);
+            }
+        }
+        return $sections;
+    }
+
+    // Podzbiór składni readme WordPressa: nagłówki = x =, listy, pogrubienie, kod i adresy.
+    private static function html(string $text): string
+    {
+        $html = '';
+        $list = '';
+        $close = static function () use (&$html, &$list): void {
+            if ($list !== '') {
+                $html .= '</' . $list . '>';
+                $list = '';
+            }
+        };
+        foreach (explode("\n", $text) as $line) {
+            $line = trim($line);
+            if (preg_match('/^(?:(\d+)\. |[*-] )(.*)$/', $line, $m)) {
+                $kind = $m[1] !== '' ? 'ol' : 'ul';
+                if ($list !== $kind) {
+                    $close();
+                    $list = $kind;
+                    $html .= '<' . $kind . '>';
+                }
+                $html .= '<li>' . self::inline($m[2]) . '</li>';
+                continue;
+            }
+            $close();
+            if (preg_match('/^= (.+) =$/', $line, $m)) {
+                $html .= '<h4>' . esc_html($m[1]) . '</h4>';
+            } elseif ($line !== '') {
+                $html .= '<p>' . self::inline($line) . '</p>';
+            }
+        }
+        $close();
+        return $html;
+    }
+
+    private static function inline(string $text): string
+    {
+        $text = esc_html($text);
+        $text = (string) preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $text);
+        $text = (string) preg_replace('/`([^`]+)`/', '<code>$1</code>', $text);
+        return (string) preg_replace('~https?://[^\s<]+[^\s<.,)]~', '<a href="$0">$0</a>', $text);
     }
 
     public static function refresh(): ?array

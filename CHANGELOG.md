@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.4.2, 16 listopada 2026
+
+- Filtr plugins_api: okno szczegółów wtyczki z sekcjami z readme.txt i banerem (assets/banner-772x250.jpg, banner-1544x500.jpg).
+- readme.txt: nowy opis, instalacja od zera, prywatność w sekcji Other Notes.
+
 ## 2.4.1, 16 listopada 2026
 
 - Operations::dependency() porównuje wersję zamiast listy 2.0.1, 2.1.0, 2.2.0. Od 2.2.1 do 2.4.0 narzędzia zapisu MCP zwracały błąd zależności, a wp_site_status pokazywał can_mutate false.
