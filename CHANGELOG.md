@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.6.1, 17 listopada 2026
+
+- Akcja wp_ajax_asm2_popup_toggle: natychmiastowy zapis pola enabled popupu z panelu, z komunikatem stanu; pozostałe pola nadal przez „Zapisz popup”.
+
 ## 2.6.0, 17 listopada 2026
 
 - Popup::PRESETS: 10 stylów i 4 okazje jako zestawy zmiennych CSS; Popup::styles(), swatches(), templates().

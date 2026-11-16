@@ -4,7 +4,7 @@ Tags: ai, mcp, oauth, administration
 Requires at least: 7.1
 Requires PHP: 8.2
 Tested up to: 7.1
-Stable tag: 2.6.0
+Stable tag: 2.6.1
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,7 +61,7 @@ Opis produktu: https://d-x.pl/wtyczki/menedzer-strony-ai/
 == Installation ==
 
 1. Zrób kopię bazy danych i plików strony.
-2. W panelu WordPressa wybierz Wtyczki, Dodaj wtyczkę, Wyślij wtyczkę na serwer i wskaż plik `ai-site-manager-2.6.0.zip`. Przy aktualizacji wybierz zastąpienie obecnej wersji.
+2. W panelu WordPressa wybierz Wtyczki, Dodaj wtyczkę, Wyślij wtyczkę na serwer i wskaż plik `ai-site-manager-2.6.1.zip`. Przy aktualizacji wybierz zastąpienie obecnej wersji.
 3. W pliku `wp-config.php` ustaw stałą `ASM_PRIVATE_STORAGE` na katalog poza katalogiem publicznym. Przykład jest w pliku README.md.
 4. Otwórz Menedżer Strony AI w menu kokpitu, pod pozycją Kokpit. Nagłówek pokaże, czy HTTPS i magazyn kopii są gotowe.
 5. Skopiuj adres ze strony Start i dodaj połączenie w Claude. Zaloguj się do strony i zatwierdź wybrany zakres.
@@ -101,6 +101,10 @@ Audyt i zakończone operacje MCP są przechowywane przez 30 dni. Operacje w toku
 Wyniki narzędzi trafiają do aplikacji klienta i mogą być przetwarzane przez dostawcę modelu. Pobieranie dokumentów tożsamości jest ograniczone do dwóch oficjalnych adresów HTTPS Claude. Wtyczka nie wymaga kluczy dostawcy modelu i nie wysyła telemetrii do autora.
 
 == Changelog ==
+
+= 2.6.1, 17 listopada 2026 =
+
+* Przełącznik „Pokazuj popup odwiedzającym” zapisuje się od razu po zaznaczeniu albo odznaczeniu.
 
 = 2.6.0, 17 listopada 2026 =
 

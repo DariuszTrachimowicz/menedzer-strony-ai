@@ -53,6 +53,7 @@ final class AdminPage
         add_action('admin_enqueue_scripts', array($this, 'assets'));
         add_action('admin_post_asm2_save_popup', array($this, 'savePopup'));
         add_action('admin_post_asm2_popup_library', array($this, 'popupLibrary'));
+        add_action('wp_ajax_asm2_popup_toggle', array($this, 'togglePopup'));
         add_action('admin_post_asm2_operator', array($this, 'changeOperator'));
         add_action('admin_post_asm2_revoke_legacy', array($this, 'revokeLegacy'));
         add_action('admin_post_asm2_check_update', array($this, 'checkUpdate'));
@@ -123,6 +124,23 @@ final class AdminPage
             'custom_css' => wp_unslash((string) ($_POST['popup_css'] ?? '')),
         ));
         $this->redirect('popup_saved', 'popup');
+    }
+
+    // Przełącznik „Pokazuj popup” zapisuje się od razu. Zmienia tylko pole enabled, reszta ustawień zostaje.
+    public function togglePopup(): void
+    {
+        if (! current_user_can('manage_options') || ! check_ajax_referer(self::NONCE, 'nonce', false)) {
+            wp_send_json_error(array('message' => 'Brak dostępu. Odśwież stronę i spróbuj ponownie.'), 403);
+        }
+        $enabled = ($_POST['enabled'] ?? '') === '1';
+        $saved = Popup::save(array_merge(Popup::settings(), array('enabled' => $enabled)));
+        if ((bool) $saved['enabled'] !== $enabled) {
+            wp_send_json_error(array('message' => 'Nie udało się zapisać. Spróbuj ponownie.'), 500);
+        }
+        $message = ! $enabled
+            ? 'Zapisano: popup wyłączony.'
+            : (trim((string) $saved['message']) === '' ? 'Zapisano: popup włączony, ale bez treści się nie pokaże.' : 'Zapisano: popup włączony.');
+        wp_send_json_success(array('enabled' => $enabled, 'message' => $message));
     }
 
     public function popupLibrary(): void
@@ -299,7 +317,8 @@ final class AdminPage
             <input type="hidden" name="action" value="asm2_save_popup">
             <section class="asm-surface">
                 <h2>Treść popupu</h2>
-                <label class="asm-check"><input type="checkbox" name="popup_enabled" value="1" <?php checked(! empty($popup['enabled'])); ?>> Pokazuj popup odwiedzającym</label>
+                <label class="asm-check"><input type="checkbox" name="popup_enabled" value="1" data-popup-toggle data-nonce="<?php echo esc_attr(wp_create_nonce(self::NONCE)); ?>" data-url="<?php echo esc_url(admin_url('admin-ajax.php')); ?>" <?php checked(! empty($popup['enabled'])); ?>> Pokazuj popup odwiedzającym</label>
+                <p class="description" id="asm-popup-toggle-status" role="status" aria-live="polite">Ten przełącznik zapisuje się od razu. Treść i wygląd zapisujesz przyciskiem „Zapisz popup”.</p>
                 <label for="asm-popup-title-field">Tytuł</label>
                 <input id="asm-popup-title-field" name="popup_title" value="<?php echo esc_attr($popup['title']); ?>">
                 <label for="asm_popup_message">Treść</label>

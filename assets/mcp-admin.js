@@ -18,6 +18,28 @@
     try { await navigator.clipboard.writeText(field.value); say('Skopiowano wybrany element.'); }
     catch { field.focus(); field.select(); say('Schowek jest niedostępny. Zaznaczono pole. Skopiuj je ręcznie skrótem klawiaturowym.'); }
   }));
+  const toggle = document.querySelector('[data-popup-toggle]');
+  if (toggle) {
+    const status = document.getElementById('asm-popup-toggle-status');
+    toggle.addEventListener('change', async () => {
+      const wanted = toggle.checked;
+      toggle.disabled = true;
+      status.textContent = 'Zapisywanie.';
+      try {
+        const body = new URLSearchParams({ action: 'asm2_popup_toggle', nonce: toggle.dataset.nonce, enabled: wanted ? '1' : '0' });
+        const response = await fetch(toggle.dataset.url, { method: 'POST', body, credentials: 'same-origin', cache: 'no-store' });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.data && result.data.message ? result.data.message : 'Nie udało się zapisać. Spróbuj ponownie.');
+        status.textContent = result.data.message;
+      } catch (error) {
+        // Stan pola wraca do zapisanego, żeby ekran nie pokazywał czegoś innego niż strona.
+        toggle.checked = !wanted;
+        status.textContent = error.message || 'Nie udało się zapisać. Spróbuj ponownie.';
+      }
+      toggle.disabled = false;
+      toggle.focus();
+    });
+  }
   document.querySelectorAll('[data-needs-confirm]').forEach(button => { button.disabled = false; });
   document.querySelectorAll('[data-confirm]').forEach(form => form.addEventListener('submit', event => { if (!window.confirm(form.dataset.confirm)) { event.preventDefault(); form.querySelector('button[type=submit]')?.focus(); } }));
   document.querySelectorAll('[data-expiry-mode]').forEach(mode => {
