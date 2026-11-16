@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.6.2, 17 listopada 2026
+
+- Updater::release() czyta wersję z przekierowania github.com/<repo>/releases/latest zamiast z api.github.com (limit 60 zapytań na godzinę na IP). Adres paczki wynika z wersji: releases/download/vX.Y.Z/ai-site-manager-X.Y.Z.zip.
+
 ## 2.6.1, 17 listopada 2026
 
 - Akcja wp_ajax_asm2_popup_toggle: natychmiastowy zapis pola enabled popupu z panelu, z komunikatem stanu; pozostałe pola nadal przez „Zapisz popup”.

@@ -13,7 +13,7 @@ Stan na 16 listopada 2026. To jest kanoniczne źródło wtyczki od wersji 2.4.0.
 1. Podnieś wersję w `ai-site-manager.php` (nagłówek i `ASM_VERSION`), `readme.txt`, `README.md`, dopisz `CHANGELOG.md`.
 2. `python build.py` tworzy `dist/ai-site-manager-<wersja>.zip` (bez testów).
 3. Commit i push, potem `gh release create v<wersja> dist/ai-site-manager-<wersja>.zip --title <wersja> --notes "..."`.
-4. Strony z wersją 2.4.0 lub nowszą widzą wydanie na zwykłym ekranie aktualizacji WordPressa (odczyt co kilka godzin albo „Sprawdź teraz” w zakładce System i aktualizacje). Tag musi mieć postać `vX.Y.Z`, a załącznik nazwę `ai-site-manager-*.zip` z katalogiem `ai-site-manager/`.
+4. Strony z wersją 2.4.0 lub nowszą widzą wydanie na zwykłym ekranie aktualizacji WordPressa (odczyt co kilka godzin albo „Sprawdź teraz” w zakładce System i aktualizacje). Tag musi mieć postać `vX.Y.Z`, a załącznik dokładnie nazwę `ai-site-manager-X.Y.Z.zip` (tak nazywa go build.py) z katalogiem `ai-site-manager/`; wtyczka od 2.6.2 składa adres paczki z numeru wersji i nie pyta API GitHuba.
 
 Opublikowane wydanie trafia na strony klientów. Nie publikuj wydania bez testów i bez zgody Darka.
 

@@ -8,7 +8,7 @@ namespace ASM\MCP {
 }
 namespace {
     if (ini_get('zend.assertions')!=='1') { fwrite(STDERR,"Asercje są wyłączone. Uruchom z -d zend.assertions=1.\n"); exit(1); }
-    const ASM_VERSION='2.6.1';
+    const ASM_VERSION='2.6.2';
     $GLOBALS['options']=[]; $GLOBALS['root']='redirect'; $GLOBALS['rest']=true; $GLOBALS['plain']=false;
     function get_option($k,$d=false) { return $GLOBALS['options'][$k]??$d; }
     function update_option($k,$v,$a=null) { $GLOBALS['options'][$k]=$v; return true; }
@@ -36,7 +36,7 @@ namespace {
     function wp_remote_retrieve_body($r) { return $r['body']; }
     require __DIR__.'/../../src/MCP/OAuthDiscovery.php';
     $D=\ASM\MCP\OAuthDiscovery::class;
-    $reset=static function(string $mode) { $GLOBALS['options']['asm_mcp_discovery']=['mode'=>$mode,'version'=>'2.6.1']; };
+    $reset=static function(string $mode) { $GLOBALS['options']['asm_mcp_discovery']=['mode'=>$mode,'version'=>'2.6.2']; };
 
     // Bez zapisu stanu zachowanie jest takie jak w 2.2.0.
     assert($D::mode()==='root' && $D::issuer()==='https://example.test');
@@ -44,7 +44,7 @@ namespace {
 
     // Hosting oddaje /.well-known WordPressowi: zostaje tryb root.
     $GLOBALS['root']='ok'; $D::detect();
-    assert($D::mode()==='root' && $GLOBALS['options']['asm_mcp_discovery']['version']==='2.6.1');
+    assert($D::mode()==='root' && $GLOBALS['options']['asm_mcp_discovery']['version']==='2.6.2');
 
     // Błąd 5xx, 403 i brak odpowiedzi nie przełączają działającej strony.
     foreach (['error','forbidden','silent'] as $state) { $GLOBALS['root']=$state; $D::detect(); assert($D::mode()==='root',$state); }

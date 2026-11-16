@@ -6,7 +6,7 @@ namespace ASM;
 
 /**
  * Aktualizacje z wydań GitHuba przez natywny mechanizm WordPressa (nagłówek Update URI).
- * Wydanie musi mieć tag w postaci v1.2.3 i załącznik ai-site-manager-*.zip z katalogiem ai-site-manager/.
+ * Wydanie musi mieć tag w postaci v1.2.3 i załącznik ai-site-manager-1.2.3.zip z katalogiem ai-site-manager/.
  * shortcut: tylko publiczne repozytorium, prywatne wymaga tokenu w żądaniach i pobieraniu.
  */
 final class Updater
@@ -35,24 +35,20 @@ final class Updater
         }
         $release = array();
         $repo = self::repo();
-        $reply = $repo === '' ? null : wp_remote_get(
-            'https://api.github.com/repos/' . $repo . '/releases/latest',
-            array('timeout' => 8, 'headers' => array('Accept' => 'application/vnd.github+json'))
+        // Adres releases/latest przekierowuje na tag najnowszego wydania. API GitHuba ma limit 60 zapytań
+        // na godzinę na adres IP, który na współdzielonym hostingu wyczerpują inne strony.
+        $reply = $repo === '' ? null : wp_remote_head(
+            'https://github.com/' . $repo . '/releases/latest',
+            array('timeout' => 8, 'redirection' => 0)
         );
-        $data = $reply && ! is_wp_error($reply) && wp_remote_retrieve_response_code($reply) === 200
-            ? json_decode(wp_remote_retrieve_body($reply), true)
-            : null;
-        $version = is_array($data) ? ltrim((string) ($data['tag_name'] ?? ''), 'v') : '';
-        if (preg_match('/^\d+\.\d+\.\d+$/D', $version) === 1) {
-            foreach ((array) ($data['assets'] ?? array()) as $asset) {
-                $package = (string) ($asset['browser_download_url'] ?? '');
-                // Paczka tylko z wydań tego repozytorium.
-                if (preg_match('/^ai-site-manager[\w.-]*\.zip$/D', (string) ($asset['name'] ?? '')) === 1
-                    && str_starts_with($package, 'https://github.com/' . $repo . '/releases/download/')) {
-                    $release = array('version' => $version, 'package' => $package, 'url' => (string) ($data['html_url'] ?? ''));
-                    break;
-                }
-            }
+        $location = $reply && ! is_wp_error($reply) ? (string) wp_remote_retrieve_header($reply, 'location') : '';
+        if (preg_match('~^https://github\.com/' . preg_quote($repo, '~') . '/releases/tag/v(\d+\.\d+\.\d+)$~D', $location, $match) === 1) {
+            // Paczka ma stałą nazwę nadawaną przez build.py i leży w wydaniach tego repozytorium.
+            $release = array(
+                'version' => $match[1],
+                'package' => 'https://github.com/' . $repo . '/releases/download/v' . $match[1] . '/ai-site-manager-' . $match[1] . '.zip',
+                'url' => $location,
+            );
         }
         // Nieudany odczyt pamiętamy krócej, żeby nie odpytywać GitHuba przy każdym wejściu do panelu.
         set_site_transient(self::CACHE, $release, $release ? 6 * HOUR_IN_SECONDS : HOUR_IN_SECONDS);
