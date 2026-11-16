@@ -23,6 +23,7 @@ Opublikowane wydanie trafia na strony klientów. Nie publikuj wydania bez testó
 - Logowanie OAuth: gdy hosting przejmuje `/.well-known` (dhosting na d-x.pl), wtyczka przełącza się na adresy pod `/wp-json/asm-mcp/v1` (opcja `asm_mcp_discovery`, `OAuthDiscovery::detect()`). Dokumenty OAuth muszą zostać poza LiteSpeed Cache. Zmiana trybu zmienia issuer.
 - Popup: zapisane ustawienia bez pola `style` zostają przy wyglądzie klasycznym. Nie zmieniaj domyślnego `classic`, bo zmieni wygląd działających popupów.
 - Aktualizator obsługuje tylko publiczne repozytorium. Nazwa filtra `update_plugins_d-x.pl` wynika z hosta w nagłówku `Update URI`.
+- Po każdym podbiciu wersji sprawdź `wp_site_status` połączenia z pełnym dostępem: `dependency` i `can_mutate` mają zostać true (regresja 2.2.1 do 2.4.0, test `tests/mcp/test-dependency.php`).
 - Commity bez dopisków o narzędziach AI, autor z adresem noreply GitHuba.
 
 Wspólny stan projektów: `C:/Users/CP24/AiXperts - projekty/DOKUMENTACJA-PROJEKTU.md`. Odbiór wdrożenia na d-x.pl: `C:/Users/CP24/Documents/ChatGPT/d-x.pl/operations/asm-220-20261116/ODBIOR-221.md`.

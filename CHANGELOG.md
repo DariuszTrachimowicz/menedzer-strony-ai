@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.4.1, 16 listopada 2026
+
+- Operations::dependency() porównuje wersję zamiast listy 2.0.1, 2.1.0, 2.2.0. Od 2.2.1 do 2.4.0 narzędzia zapisu MCP zwracały błąd zależności, a wp_site_status pokazywał can_mutate false.
+
 ## 2.4.0, 16 listopada 2026
 
 - Panel: nagłówek ze stanem, zakładki Popup oraz System i aktualizacje, operatorzy w Uprawnieniach, zdarzenia natywnego API w Historii, układ na całą szerokość okna.

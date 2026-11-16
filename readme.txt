@@ -4,7 +4,7 @@ Tags: ai, mcp, oauth, administration
 Requires at least: 7.1
 Requires PHP: 8.2
 Tested up to: 7.1
-Stable tag: 2.4.0
+Stable tag: 2.4.1
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,7 +22,7 @@ Zakresy MCP: publiczny odczyt, szkice, publikowanie i pełne zarządzanie stron�
 == Installation ==
 
 1. Wykonaj kopię bazy, plików i prywatnego magazynu ASM.
-2. Wgraj ai-site-manager-2.4.0.zip jako aktualizację istniejącego Menedżera Strony AI.
+2. Wgraj ai-site-manager-2.4.1.zip jako aktualizację istniejącego Menedżera Strony AI.
 3. Ustaw prywatny magazyn poza katalogiem publicznym według README.md.
 4. Otwórz Ustawienia, Menedżer Strony AI.
 5. Dla Claude skopiuj adres i dodaj własne połączenie w aplikacji. Zaloguj się do tej strony i zatwierdź wybrany zakres.
@@ -58,6 +58,10 @@ Audyt i zakończone operacje MCP są przechowywane przez 30 dni. Operacje w toku
 Wyniki narzędzi trafiają do aplikacji klienta i mogą być przetwarzane przez dostawcę modelu. Pobieranie dokumentów tożsamości jest ograniczone do dwóch oficjalnych adresów HTTPS Claude. Wtyczka nie wymaga kluczy dostawcy modelu i nie wysyła telemetrii do autora.
 
 == Changelog ==
+
+= 2.4.1, 16 listopada 2026 =
+
+* Naprawa: połączenia z pełnym dostępem znów mogą zapisywać. Wersje 2.2.1 do 2.4.0 blokowały zapisy przez MCP.
 
 = 2.4.0, 16 listopada 2026 =
 

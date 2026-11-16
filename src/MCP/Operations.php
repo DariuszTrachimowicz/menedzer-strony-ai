@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace ASM\MCP;
 
 final class Operations {
-    public static function dependency(): bool { return defined('ASM_VERSION') && in_array(ASM_VERSION,['2.0.1','2.1.0','2.2.0'],true); }
+    public static function dependency(): bool { return defined('ASM_VERSION') && version_compare(ASM_VERSION,'2.0.1','>='); } // Moduł i silnik są w jednej paczce; lista dozwolonych wersji wyłączała zapisy po każdym podbiciu numeru.
     public static function upstream(array $c,string $path,array $body=[],string $key='') {
         if (!self::dependency()) { return Policy::error('dependency',503); }
         $fresh = Connections::recheck($c); if (is_wp_error($fresh)) { return $fresh; }
