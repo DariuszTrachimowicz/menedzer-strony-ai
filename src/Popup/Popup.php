@@ -30,6 +30,7 @@ final class Popup
             'text' => '#1d2327',
             'radius' => 12,
             'custom_css' => '',
+            'wait_for_cookies' => true,
         );
     }
 
@@ -61,6 +62,7 @@ final class Popup
             'text' => $color('text'),
             'radius' => max(0, min(40, (int) ($data['radius'] ?? $defaults['radius']))),
             'custom_css' => self::cleanCss((string) ($data['custom_css'] ?? '')),
+            'wait_for_cookies' => ! array_key_exists('wait_for_cookies', $data) || ! empty($data['wait_for_cookies']),
         );
         update_option(self::OPTION, $clean, false);
         return $clean;
@@ -118,6 +120,8 @@ final class Popup
             'dismissDays' => (int) $settings['dismiss_days'],
             'style' => $settings['style'],
             'preview' => self::preview(),
+            // wp_localize_script zamienia false na pusty napis, dlatego jawne 1 albo 0.
+            'waitForCookies' => empty($settings['wait_for_cookies']) ? 0 : 1,
         ));
     }
 
@@ -135,6 +139,8 @@ final class Popup
             $settings['message'] = '<p>To jest podgląd. Wpisz treść popupu w ustawieniach wtyczki.</p>';
             $settings['button_text'] = $settings['button_text'] !== '' ? $settings['button_text'] : 'Rozumiem';
         }
+        // Edytor zapisuje akapity jako puste wiersze. Bez wpautop treść zlewała się w jeden blok.
+        $settings['message'] = wpautop((string) $settings['message']);
         echo self::renderMarkup($settings); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 

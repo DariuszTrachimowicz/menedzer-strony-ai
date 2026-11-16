@@ -106,7 +106,7 @@
 
   function openWhenReady(attempt) {
     if (dismissed()) return;
-    if (cookieDialogActive() && attempt < 120) {
+    if (String(config.waitForCookies) !== '0' && cookieDialogActive() && attempt < 120) {
       window.setTimeout(function () { openWhenReady(attempt + 1); }, 500);
       return;
     }

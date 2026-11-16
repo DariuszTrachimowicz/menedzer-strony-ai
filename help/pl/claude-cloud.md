@@ -1,6 +1,6 @@
 # Claude przez logowanie
 
-1. W WordPressie otwórz Ustawienia, Menedżer Strony AI, Połączenia AI, Start. Skopiuj adres z instrukcji Claude.
+1. W WordPressie otwórz Menedżer Strony AI w menu kokpitu, zakładka Start. Skopiuj adres z instrukcji Claude.
 2. W Claude otwórz Customize, Connectors, Add custom connector. Wpisz nazwę strony i adres `{{MCP_URL}}`.
 3. Wybierz Continue, następnie Sign in now. Zaloguj się do WordPressa tej strony.
 4. Ekran zgody pokaże aplikację, adres powrotu i zakres. Domyślny Publiczny odczyt nie zmienia treści. Zakres Szkice lub Publikowanie wymaga istniejących uprawnień konta ASM.

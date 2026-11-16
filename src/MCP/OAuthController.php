@@ -17,7 +17,7 @@ final class OAuthController {
         check_admin_referer('asm_mcp_oauth_diagnostics');
         if (!OAuthClients::rate('diagnostics',5)) { wp_die('Zbyt wiele prób. Spróbuj po upływie minuty.','',['response'=>429]); }
         set_transient('asm_mcp_discovery_'.get_current_user_id(),OAuthDiscovery::detect(true),600);
-        wp_safe_redirect(admin_url('options-general.php?page=ai-site-manager&tab=help&doc=troubleshooting#asm-discovery')); exit;
+        wp_safe_redirect(admin_url('admin.php?page=ai-site-manager&tab=help&doc=troubleshooting#asm-discovery')); exit;
     }
     public static function register(): void {
         foreach (['/oauth/resource'=>'resourceMetadata','/\\.well-known/oauth-authorization-server'=>'server','/\\.well-known/openid-configuration'=>'openid','/oauth/jwks'=>''] as $route=>$document) {
@@ -165,7 +165,7 @@ final class OAuthController {
         foreach (array_intersect_key($request,array_flip(['client_id','redirect_uri','response_type','code_challenge','code_challenge_method','resource','scope','state'])) as $key=>$value) { echo '<input type="hidden" name="'.esc_attr($key).'" value="'.esc_attr($value).'">'; }
         echo '<input type="hidden" name="consent_context" value="'.esc_attr($context).'"><input type="hidden" name="_wpnonce" value="'.esc_attr(wp_create_nonce('asm_mcp_oauth_consent')).'"><fieldset><legend>Zakres dostępu</legend>';
         if (!current_user_can('asm_full_control') && array_intersect($validated['scopes'],['drafts','publish','full'])) {
-            echo '<p>Aplikacja prosi także o edycję treści, ale obecnie możliwy jest tylko odczyt. Administrator może jawnie nadać sobie pełny dostęp w ustawieniach operatorów Menedżera Strony AI, a następnie ponowić połączenie. Zatwierdzenie odczytu nie pozwala edytować wpisów.</p><p><a href="'.esc_url(admin_url('options-general.php?page=ai-site-manager&tab=permissions')).'" target="_blank" rel="noopener noreferrer">Otwórz ustawienia operatorów</a></p>';
+            echo '<p>Aplikacja prosi także o edycję treści, ale obecnie możliwy jest tylko odczyt. Administrator może jawnie nadać sobie pełny dostęp w ustawieniach operatorów Menedżera Strony AI, a następnie ponowić połączenie. Zatwierdzenie odczytu nie pozwala edytować wpisów.</p><p><a href="'.esc_url(admin_url('admin.php?page=ai-site-manager&tab=permissions')).'" target="_blank" rel="noopener noreferrer">Otwórz ustawienia operatorów</a></p>';
         }
         $first=true;
         $scopeOrder=array_keys(Policy::SCOPES);

@@ -73,7 +73,7 @@ final class Module {
     }
     public static function redirectLegacy(): void {
         if (($_GET['page']??'')!=='asm-mcp-connect') { return; }
-        wp_safe_redirect(admin_url('options-general.php?page=ai-site-manager&tab=connections'),302);
+        wp_safe_redirect(admin_url('admin.php?page=ai-site-manager&tab=connections'),302);
         exit;
     }
 }

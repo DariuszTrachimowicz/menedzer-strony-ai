@@ -33,7 +33,19 @@ final class AdminPage
     public function hooks(): void
     {
         self::$instance = $this;
+        // Stary adres z menu Ustawienia. WordPress odmawia dostępu do nieistniejącej strony przed admin_init, stąd przekierowanie już tutaj.
+        if (($GLOBALS['pagenow'] ?? '') === 'options-general.php' && ($_GET['page'] ?? '') === self::SLUG) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            $query = array('page' => self::SLUG);
+            foreach (array('tab', 'doc', 'add', 'client', 'connection', 'result', 'asm_message') as $key) {
+                if (isset($_GET[$key]) && is_string($_GET[$key])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                    $query[$key] = sanitize_text_field(wp_unslash($_GET[$key])); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                }
+            }
+            wp_safe_redirect(add_query_arg($query, admin_url('admin.php')));
+            exit;
+        }
         add_action('admin_menu', array($this, 'menu'));
+        add_action('wp_dashboard_setup', array($this, 'dashboard'));
         add_action('admin_enqueue_scripts', array($this, 'assets'));
         add_action('admin_post_asm2_save_popup', array($this, 'savePopup'));
         add_action('admin_post_asm2_operator', array($this, 'changeOperator'));
@@ -44,18 +56,21 @@ final class AdminPage
 
     public function menu(): void
     {
-        add_options_page(
+        // Pozycja 3: zaraz pod Kokpitem.
+        add_menu_page(
             'Menedżer Strony AI',
             'Menedżer Strony AI',
             'manage_options',
             self::SLUG,
-            array($this, 'render')
+            array($this, 'render'),
+            'dashicons-superhero-alt',
+            3
         );
     }
 
     public function assets(string $hook): void
     {
-        if ($hook !== 'settings_page_' . self::SLUG) {
+        if ($hook !== 'toplevel_page_' . self::SLUG) {
             return;
         }
         wp_enqueue_style('wp-color-picker');
@@ -74,7 +89,7 @@ final class AdminPage
 
     public static function url(string $tab): string
     {
-        return admin_url('options-general.php?page=' . self::SLUG . '&tab=' . $tab);
+        return admin_url('admin.php?page=' . self::SLUG . '&tab=' . $tab);
     }
 
     // Sekcje natywne wyświetlane w zakładkach panelu połączeń.
@@ -101,6 +116,7 @@ final class AdminPage
             'text' => wp_unslash((string) ($_POST['popup_text'] ?? '')),
             'radius' => (int) ($_POST['popup_radius'] ?? 12),
             'custom_css' => wp_unslash((string) ($_POST['popup_css'] ?? '')),
+            'wait_for_cookies' => ! empty($_POST['popup_wait_cookies']),
         ));
         $this->redirect('popup_saved', 'popup');
     }
@@ -191,6 +207,59 @@ final class AdminPage
         <?php
     }
 
+    public function dashboard(): void
+    {
+        if (current_user_can('manage_options')) {
+            add_meta_box('asm_dashboard', 'Menedżer Strony AI', array($this, 'dashboardWidget'), 'dashboard', 'normal', 'high');
+        }
+    }
+
+    // Widżet kokpitu: sprawy wymagające uwagi i skrót stanu połączeń.
+    public function dashboardWidget(): void
+    {
+        global $wpdb;
+        $alerts = array();
+        $release = get_site_transient('asm_update_release');
+        if (is_array($release) && isset($release['version']) && version_compare($release['version'], ASM_VERSION, '>')) {
+            $alerts[] = array('Dostępna jest wersja ' . $release['version'] . '.', admin_url('plugins.php?plugin_status=upgrade'), 'Aktualizuj');
+        }
+        if (! $this->storageAvailable) {
+            $alerts[] = array('Magazyn kopii jest niedostępny, zmian nie da się cofnąć.', self::url('system'), 'Sprawdź');
+        }
+        if (! is_ssl()) {
+            $alerts[] = array('Strona nie działa pod HTTPS, aplikacje zdalne się nie połączą.', self::url('system'), 'Sprawdź');
+        }
+        $mcp = PHP_VERSION_ID >= 80200 && class_exists('ASM\MCP\Module') && \ASM\MCP\Module::ready();
+        $stats = null;
+        if ($mcp) {
+            $table = \ASM\MCP\Connections::table('connections');
+            $now = time();
+            $old = $wpdb->suppress_errors(true);
+            $stats = $wpdb->get_row($wpdb->prepare("SELECT COUNT(*) AS active, MAX(last_used) AS last_used, SUM(expires_at>0 AND expires_at<%d) AS expiring FROM $table WHERE owner_id=%d AND revoked=0 AND deleted_at=0 AND (expires_at=0 OR expires_at>%d)", $now + 7 * DAY_IN_SECONDS, get_current_user_id(), $now), ARRAY_A);
+            $wpdb->suppress_errors($old);
+            if ($stats && (int) $stats['expiring'] > 0) {
+                $alerts[] = array('Połączenia wygasające w ciągu 7 dni: ' . (int) $stats['expiring'] . '.', self::url('connections'), 'Przedłuż');
+            }
+        } else {
+            $alerts[] = array('Połączenia AI są niedostępne.', self::url('system'), 'Sprawdź');
+        }
+        foreach ($alerts as $alert) {
+            echo '<p class="asm-dash-alert"><span class="dashicons dashicons-warning" aria-hidden="true"></span> ' . esc_html($alert[0]) . ' <a href="' . esc_url($alert[1]) . '">' . esc_html($alert[2]) . '</a></p>';
+        }
+        if (! $alerts) {
+            echo '<p><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span> Nic nie wymaga uwagi.</p>';
+        }
+        $popup = Popup::settings();
+        echo '<ul>';
+        if ($stats) {
+            echo '<li>Twoje aktywne połączenia: <strong>' . (int) $stats['active'] . '</strong></li>';
+            echo '<li>Ostatnie użycie: <strong>' . esc_html((int) $stats['last_used'] ? self::humanDate((int) $stats['last_used']) : 'jeszcze nie użyto') . '</strong></li>';
+        }
+        echo '<li>Popup: <strong>' . (! empty($popup['enabled']) && trim((string) $popup['message']) !== '' ? 'włączony' : 'wyłączony') . '</strong></li>';
+        echo '<li>Wersja wtyczki: <strong>' . esc_html(ASM_VERSION) . '</strong></li></ul>';
+        echo '<p><a class="button button-primary" href="' . esc_url(self::url('start')) . '">Dodaj połączenie</a> <a class="button" href="' . esc_url(self::url('activity')) . '">Historia</a> <a class="button" href="' . esc_url(self::url('popup')) . '">Popup</a></p>';
+    }
+
     private static function chip(bool $ok, string $label): void
     {
         echo '<li class="asm-chip ' . ($ok ? 'is-ok' : 'is-warn') . '">' . esc_html($label) . '</li>';
@@ -218,6 +287,8 @@ final class AdminPage
                 <label for="asm-popup-days-field">Po zamknięciu nie pokazuj przez (dni)</label>
                 <input id="asm-popup-days-field" class="asm-short" type="number" min="0" max="365" name="popup_days" value="<?php echo (int) $popup['dismiss_days']; ?>">
                 <p class="description">0 oznacza, że popup pokaże się przy każdej wizycie.</p>
+                <label class="asm-check"><input type="checkbox" name="popup_wait_cookies" value="1" <?php checked(! empty($popup['wait_for_cookies'])); ?>> Pokaż dopiero po zamknięciu banera cookies (Complianz)</label>
+                <p class="description">Wyłącz, jeśli popup ma się pojawić od razu, razem z banerem cookies.</p>
             </section>
             <section class="asm-surface">
                 <h2>Wygląd</h2>
@@ -370,7 +441,7 @@ final class AdminPage
     {
         wp_safe_redirect(add_query_arg(
             array('page' => self::SLUG, 'tab' => $tab, 'asm_message' => $message),
-            admin_url('options-general.php')
+            admin_url('admin.php')
         ));
         exit;
     }

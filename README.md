@@ -1,4 +1,4 @@
-# Menedżer Strony AI 2.4.2
+# Menedżer Strony AI 2.5.0
 
 Wtyczka udostępnia kontrolowane API do odczytu i zarządzania instalacją WordPressa. Każda zmiana przechodzi przez cztery etapy: preview, execute, verify i opcjonalny rollback.
 
@@ -46,7 +46,7 @@ Discovery wymaga przekazania dokładnych ścieżek /.well-known do WordPressa. N
 ## Uwierzytelnianie natywnego API
 
 1. Aktywuj wtyczkę.
-2. Wejdź w Ustawienia, Menedżer Strony AI.
+2. Otwórz Menedżer Strony AI w menu kokpitu.
 3. Nadaj `asm_full_control` wybranemu administratorowi.
 4. W profilu tego użytkownika utwórz osobne hasło aplikacji.
 5. Używaj Basic Auth przez HTTPS: login WordPressa oraz hasło aplikacji.

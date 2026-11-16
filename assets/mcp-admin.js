@@ -18,6 +18,7 @@
     try { await navigator.clipboard.writeText(field.value); say('Skopiowano wybrany element.'); }
     catch { field.focus(); field.select(); say('Schowek jest niedostępny. Zaznaczono pole. Skopiuj je ręcznie skrótem klawiaturowym.'); }
   }));
+  document.querySelectorAll('[data-needs-confirm]').forEach(button => { button.disabled = false; });
   document.querySelectorAll('[data-confirm]').forEach(form => form.addEventListener('submit', event => { if (!window.confirm(form.dataset.confirm)) { event.preventDefault(); form.querySelector('button[type=submit]')?.focus(); } }));
   document.querySelectorAll('[data-expiry-mode]').forEach(mode => {
     const date = mode.form.querySelector('[data-expiry-date]');

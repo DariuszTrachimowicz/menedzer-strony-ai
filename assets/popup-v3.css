@@ -92,7 +92,8 @@
   font-size: 19px;
   font-weight: 500;
 }
-.asm-popup__msg p { margin: 0; }
+.asm-popup__msg p { margin: 0 0 10px; }
+.asm-popup__msg p:last-child { margin-bottom: 0; }
 .asm-popup__btn {
   min-height: 46px;
   padding: 12px 26px;

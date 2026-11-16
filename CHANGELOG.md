@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.5.0, 16 listopada 2026
+
+- Panel jako strona najwyższego poziomu (admin.php?page=ai-site-manager, pozycja 3); stary adres options-general.php przekierowuje.
+- Widżet kokpitu asm_dashboard (wp_dashboard_setup) z alertami i stanem połączeń.
+- Start: karty aplikacji z poleceniami dla Claude Code, Codex (logowanie albo --bearer-token-env-var zależnie od trybu adresów) i skrótami do kreatora poświadczeń (&client=).
+- Połączenia: działania w jednym wierszu, usunięcie potwierdzane oknem dialogowym.
+- Popup: wpautop przy wyświetlaniu, pole wait_for_cookies (domyślnie true), akapity w stylu klasycznym mają odstęp.
+
 ## 2.4.2, 16 listopada 2026
 
 - Filtr plugins_api: okno szczegółów wtyczki z sekcjami z readme.txt i banerem (assets/banner-772x250.jpg, banner-1544x500.jpg).
