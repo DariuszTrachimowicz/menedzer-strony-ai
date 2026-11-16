@@ -45,7 +45,7 @@
 .asm-popup__x:hover, .asm-popup__x:focus-visible { background: color-mix(in srgb, currentColor 10%, transparent); }
 .asm-popup__title {
   margin: 0 48px 14px 0;
-  color: inherit;
+  color: var(--asm-popup-heading-color, inherit);
   font-family: var(--asm-popup-heading-font, inherit);
   font-weight: var(--asm-popup-heading-weight, 600);
   font-size: clamp(24px, 4vw, 32px);
@@ -78,6 +78,13 @@
 .asm-popup__btn:hover { filter: brightness(.92); color: var(--asm-popup-accent-text, #fff); }
 .asm-popup__btn:empty { display: none; }
 .asm-popup :focus-visible { outline: 3px solid var(--asm-popup-accent, #2271b1); outline-offset: 3px; }
+.asm-popup__title::before { content: var(--asm-popup-deco, none); display: block; margin-bottom: 10px; font-size: 44px; line-height: 1; }
+.asm-popup--auto .asm-popup__box, .asm-popup--business .asm-popup__box { border-top: 6px solid var(--asm-popup-accent, #2271b1); }
+.asm-popup--glass .asm-popup__box { border: 1px solid rgba(255, 255, 255, .65); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); }
+.asm-popup--minimal .asm-popup__box { border: 1px solid #111827; box-shadow: none; }
+/* Flaga rysowana w CSS: emoji flagi nie wyświetla się w Windows. */
+.asm-popup--niepodleglosc .asm-popup__box { border-top: 6px solid #dc143c; }
+.asm-popup--niepodleglosc .asm-popup__title::before { content: ""; width: 48px; height: 30px; border: 1px solid #cbd5e1; background: linear-gradient(#fff 50%, #dc143c 50%); }
 .asm-popup-open { overflow: hidden; }
 @keyframes asm-popup-enter { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
 

@@ -4,7 +4,7 @@ Tags: ai, mcp, oauth, administration
 Requires at least: 7.1
 Requires PHP: 8.2
 Tested up to: 7.1
-Stable tag: 2.5.1
+Stable tag: 2.6.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,7 +61,7 @@ Opis produktu: https://d-x.pl/wtyczki/menedzer-strony-ai/
 == Installation ==
 
 1. Zrób kopię bazy danych i plików strony.
-2. W panelu WordPressa wybierz Wtyczki, Dodaj wtyczkę, Wyślij wtyczkę na serwer i wskaż plik `ai-site-manager-2.5.1.zip`. Przy aktualizacji wybierz zastąpienie obecnej wersji.
+2. W panelu WordPressa wybierz Wtyczki, Dodaj wtyczkę, Wyślij wtyczkę na serwer i wskaż plik `ai-site-manager-2.6.0.zip`. Przy aktualizacji wybierz zastąpienie obecnej wersji.
 3. W pliku `wp-config.php` ustaw stałą `ASM_PRIVATE_STORAGE` na katalog poza katalogiem publicznym. Przykład jest w pliku README.md.
 4. Otwórz Menedżer Strony AI w menu kokpitu, pod pozycją Kokpit. Nagłówek pokaże, czy HTTPS i magazyn kopii są gotowe.
 5. Skopiuj adres ze strony Start i dodaj połączenie w Claude. Zaloguj się do strony i zatwierdź wybrany zakres.
@@ -101,6 +101,13 @@ Audyt i zakończone operacje MCP są przechowywane przez 30 dni. Operacje w toku
 Wyniki narzędzi trafiają do aplikacji klienta i mogą być przetwarzane przez dostawcę modelu. Pobieranie dokumentów tożsamości jest ograniczone do dwóch oficjalnych adresów HTTPS Claude. Wtyczka nie wymaga kluczy dostawcy modelu i nie wysyła telemetrii do autora.
 
 == Changelog ==
+
+= 2.6.0, 17 listopada 2026 =
+
+* Popup: 10 gotowych stylów (m.in. Minimalistyczny, Ciemny, Gradient, Szkło, Elegancki) i 4 style okazjonalne.
+* Popupy okazjonalne z gotową treścią: Nowy Rok, Boże Narodzenie, Wielkanoc, Święto Niepodległości.
+* Biblioteka popupów: zapisz popup pod nazwą i wczytaj go później.
+* Styl „Jak strona” trafniej wybiera kolor przycisku i nagłówka strony.
 
 = 2.5.1, 16 listopada 2026 =
 

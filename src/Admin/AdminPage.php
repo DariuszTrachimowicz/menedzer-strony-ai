@@ -15,6 +15,10 @@ final class AdminPage
     private const NONCE = 'asm2_admin';
     private const MESSAGES = array(
         'popup_saved' => 'Zapisano ustawienia popupu.',
+        'popup_remembered' => 'Zapisano popup w bibliotece.',
+        'popup_loaded' => 'Wczytano popup. Sprawdź treść i zapisz, a potem obejrzyj podgląd.',
+        'popup_forgotten' => 'Usunięto popup z biblioteki.',
+        'popup_library_failed' => 'Nie udało się wykonać operacji na bibliotece. Podaj nazwę albo usuń starsze wpisy (limit 50).',
         'operator_saved' => 'Zapisano uprawnienia operatora.',
         'legacy_revoked' => 'Usunięto stary hash klucza.',
         'update_checked' => 'Sprawdzono wydania w repozytorium.',
@@ -48,6 +52,7 @@ final class AdminPage
         add_action('wp_dashboard_setup', array($this, 'dashboard'));
         add_action('admin_enqueue_scripts', array($this, 'assets'));
         add_action('admin_post_asm2_save_popup', array($this, 'savePopup'));
+        add_action('admin_post_asm2_popup_library', array($this, 'popupLibrary'));
         add_action('admin_post_asm2_operator', array($this, 'changeOperator'));
         add_action('admin_post_asm2_revoke_legacy', array($this, 'revokeLegacy'));
         add_action('admin_post_asm2_check_update', array($this, 'checkUpdate'));
@@ -118,6 +123,27 @@ final class AdminPage
             'custom_css' => wp_unslash((string) ($_POST['popup_css'] ?? '')),
         ));
         $this->redirect('popup_saved', 'popup');
+    }
+
+    public function popupLibrary(): void
+    {
+        $this->guard();
+        $operation = sanitize_key(wp_unslash((string) ($_POST['library_action'] ?? '')));
+        $id = sanitize_text_field(wp_unslash((string) ($_POST['library_id'] ?? '')));
+        $current = Popup::settings();
+        if ($operation === 'save') {
+            $ok = Popup::remember(wp_unslash((string) ($_POST['library_name'] ?? '')), $current);
+            $this->redirect($ok ? 'popup_remembered' : 'popup_library_failed', 'popup');
+        }
+        if ($operation === 'load') {
+            $settings = Popup::recall($id);
+            if ($settings !== null) {
+                // Wczytanie nie zmienia tego, czy popup jest włączony.
+                Popup::save(array_merge($current, $settings, array('enabled' => ! empty($current['enabled']))));
+            }
+            $this->redirect($settings !== null ? 'popup_loaded' : 'popup_library_failed', 'popup');
+        }
+        $this->redirect($operation === 'delete' && Popup::forget($id) ? 'popup_forgotten' : 'popup_library_failed', 'popup');
     }
 
     public function changeOperator(): void
@@ -290,13 +316,31 @@ final class AdminPage
             </section>
             <section class="asm-surface">
                 <h2>Wygląd</h2>
-                <fieldset>
+                <fieldset class="asm-styles">
                     <legend>Styl</legend>
-                    <?php foreach (Popup::STYLES as $value => $label) : ?>
-                        <label class="asm-check"><input type="radio" name="popup_style" value="<?php echo esc_attr($value); ?>" <?php checked($popup['style'], $value); ?>> <?php echo esc_html($label); ?></label>
+                    <?php
+                    $swatches = Popup::swatches();
+                    $groups = array('Podstawowe' => array('auto', 'custom', 'classic'), 'Gotowe style' => array(), 'Okazje' => array());
+                    foreach ($swatches as $key => $swatch) {
+                        $groups[$swatch['group'] === 'okazja' ? 'Okazje' : 'Gotowe style'][] = $key;
+                    }
+                    $labels = Popup::styles();
+                    foreach ($groups as $group => $keys) :
+                        ?>
+                        <p class="asm-styles__group"><?php echo esc_html($group); ?></p>
+                        <div class="asm-styles__grid">
+                        <?php foreach ($keys as $key) :
+                            $swatch = $swatches[$key] ?? null; ?>
+                            <label class="asm-style">
+                                <input type="radio" name="popup_style" value="<?php echo esc_attr($key); ?>" <?php checked($popup['style'], $key); ?>>
+                                <span class="asm-style__swatch"<?php echo $swatch ? ' style="background:' . esc_attr($swatch['bg']) . ';color:' . esc_attr($swatch['text']) . '"' : ''; ?>>Aa<i<?php echo $swatch ? ' style="background:' . esc_attr($swatch['accent']) . '"' : ''; ?>></i></span>
+                                <span class="asm-style__name"><?php echo esc_html($labels[$key]); ?></span>
+                            </label>
+                        <?php endforeach; ?>
+                        </div>
                     <?php endforeach; ?>
                 </fieldset>
-                <p class="description">W stylu „Jak strona” popup bierze czcionki, kolory tła i tekstu oraz wygląd przycisku z elementów Twojej strony. Kolor akcentu poniżej działa wtedy tylko, gdy strona nie ma żadnego przycisku.</p>
+                <p class="description">„Jak strona” bierze czcionki, kolory i wygląd przycisku z Twojej strony. „Własny” używa kolorów i zaokrąglenia poniżej. „Klasyczny” to wygląd sprzed wersji 2.4. Gotowe style i okazje mają własne kolory.</p>
                 <div class="asm-colors">
                     <div><label for="asm-popup-accent-field">Kolor akcentu i przycisku</label><input id="asm-popup-accent-field" class="asm-color" name="popup_accent" value="<?php echo esc_attr($popup['accent']); ?>"></div>
                     <div><label for="asm-popup-bg-field">Tło okna (styl Własny)</label><input id="asm-popup-bg-field" class="asm-color" name="popup_background" value="<?php echo esc_attr($popup['background']); ?>"></div>
@@ -314,7 +358,59 @@ final class AdminPage
                 <p class="description">Podgląd widzi tylko zalogowany administrator, także gdy popup jest wyłączony. Najpierw zapisz zmiany.</p>
             </section>
         </form>
+        <div class="asm-grid asm-grid--wide">
+            <section class="asm-surface">
+                <h2>Biblioteka popupów</h2>
+                <p>Zapisz obecny popup pod nazwą, żeby wrócić do niego później, na przykład co roku przed świętami.</p>
+                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="asm-copy-row">
+                    <?php wp_nonce_field(self::NONCE); ?>
+                    <input type="hidden" name="action" value="asm2_popup_library">
+                    <input type="hidden" name="library_action" value="save">
+                    <input name="library_name" required maxlength="80" aria-label="Nazwa popupu w bibliotece" placeholder="Nazwa, np. Promocja zimowa">
+                    <button class="button" type="submit">Zapisz obecny popup</button>
+                </form>
+                <p class="description">Do biblioteki trafia ostatnio zapisana wersja popupu: treść, przycisk i wygląd.</p>
+                <?php $this->libraryTable(Popup::library(), true); ?>
+            </section>
+            <section class="asm-surface">
+                <h2>Popupy okazjonalne</h2>
+                <p>Gotowa treść i wygląd na święta. Po wczytaniu możesz zmienić tekst i zapisać.</p>
+                <?php
+                $templates = array();
+                foreach (Popup::templates() as $key => $template) {
+                    $templates['tpl:' . $key] = $template;
+                }
+                $this->libraryTable($templates, false);
+                ?>
+            </section>
+        </div>
         <?php
+    }
+
+    private function libraryTable(array $entries, bool $deletable): void
+    {
+        if (! $entries) {
+            echo '<p class="description">Biblioteka jest pusta.</p>';
+            return;
+        }
+        $labels = Popup::styles();
+        echo '<table class="widefat asm-table"><thead><tr><th scope="col">Nazwa</th><th scope="col">Tytuł</th><th scope="col">Styl</th><th scope="col">Działania</th></tr></thead><tbody>';
+        foreach ($entries as $id => $entry) {
+            $settings = (array) ($entry['settings'] ?? array());
+            $name = (string) ($entry['name'] ?? '');
+            echo '<tr><td data-label="Nazwa">' . esc_html($name) . '</td><td data-label="Tytuł">' . esc_html((string) ($settings['title'] ?? '')) . '</td><td data-label="Styl">' . esc_html($labels[$settings['style'] ?? ''] ?? '') . '</td><td data-label="Działania"><div class="asm-row-actions">';
+            foreach (array_filter(array('load' => 'Wczytaj', 'delete' => $deletable ? 'Usuń' : null)) as $operation => $label) {
+                $question = $operation === 'load'
+                    ? 'Wczytać „' . $name . '”? Zastąpi to treść i wygląd obecnego popupu.'
+                    : 'Usunąć „' . $name . '” z biblioteki?';
+                echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" data-confirm="' . esc_attr($question) . '">';
+                wp_nonce_field(self::NONCE);
+                echo '<input type="hidden" name="action" value="asm2_popup_library"><input type="hidden" name="library_action" value="' . esc_attr($operation) . '"><input type="hidden" name="library_id" value="' . esc_attr((string) $id) . '">';
+                echo '<button class="button button-small" type="submit" disabled data-needs-confirm>' . esc_html($label) . '</button></form>';
+            }
+            echo '</div></td></tr>';
+        }
+        echo '</tbody></table>';
     }
 
     private function operators(): void
