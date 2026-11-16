@@ -12,11 +12,12 @@ function current_user_can($c) { return false; }
 require __DIR__ . '/../../src/Popup/Popup.php';
 use ASM\Popup\Popup;
 
-// Trzy style podstawowe, 10 gotowych i 4 okazje.
+// Trzy style podstawowe, 10 gotowych i 7 okazji.
 $styles = Popup::styles();
-assert(count($styles) === 17 && isset($styles['auto'], $styles['classic'], $styles['custom'], $styles['glass'], $styles['niepodleglosc']));
+assert(count($styles) === 20 && isset($styles['black-friday'], $styles['walentynki'], $styles['mikolajki']) && isset($styles['auto'], $styles['classic'], $styles['custom'], $styles['glass'], $styles['niepodleglosc']));
 assert(count(array_filter(Popup::swatches(), static fn($s) => $s['group'] === 'styl')) === 10);
-assert(count(array_filter(Popup::swatches(), static fn($s) => $s['group'] === 'okazja')) === 4);
+assert(count(array_filter(Popup::swatches(), static fn($s) => $s['group'] === 'okazja')) === 7);
+assert(count(Popup::templates()) === 7);
 
 // Zapisane ustawienia bez pola style zostają przy wyglądzie klasycznym, nieznany styl też.
 $GLOBALS['options']['asm_popup'] = array('enabled' => true, 'title' => 'T', 'message' => 'M');

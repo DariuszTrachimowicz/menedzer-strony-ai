@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.7.0, 17 listopada 2026
+
+- Popup::PRESETS i templates(): okazje black-friday, walentynki, mikolajki (razem 7 okazji). Szablony sprzedażowe mają pola w nawiasach kwadratowych zamiast wymyślonych rabatów i terminów.
+
 ## 2.6.2, 17 listopada 2026
 
 - Updater::release() czyta wersję z przekierowania github.com/<repo>/releases/latest zamiast z api.github.com (limit 60 zapytań na godzinę na IP). Adres paczki wynika z wersji: releases/download/vX.Y.Z/ai-site-manager-X.Y.Z.zip.

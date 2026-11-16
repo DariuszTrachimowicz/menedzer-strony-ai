@@ -30,6 +30,9 @@ final class Popup
         'boze-narodzenie' => array('Boże Narodzenie', 'okazja', array('bg' => 'linear-gradient(160deg,#7f1d1d,#b91c1c)', 'text' => '#ffffff', 'accent' => '#fde68a', 'accent-text' => '#7f1d1d', 'radius' => '16px', 'deco' => '"🎄"')),
         'wielkanoc' => array('Wielkanoc', 'okazja', array('bg' => '#fefce8', 'text' => '#3f6212', 'accent' => '#65a30d', 'accent-text' => '#ffffff', 'radius' => '22px', 'deco' => '"🐣"')),
         'niepodleglosc' => array('Święto Niepodległości', 'okazja', array('bg' => '#ffffff', 'text' => '#1f2937', 'accent' => '#dc143c', 'accent-text' => '#ffffff', 'radius' => '8px')),
+        'black-friday' => array('Black Friday', 'okazja', array('bg' => '#0a0a0a', 'text' => '#ffffff', 'accent' => '#facc15', 'accent-text' => '#0a0a0a', 'radius' => '4px', 'deco' => '"🛍️"')),
+        'walentynki' => array('Walentynki', 'okazja', array('bg' => 'linear-gradient(160deg,#9f1239,#e11d48)', 'text' => '#ffffff', 'accent' => '#ffffff', 'accent-text' => '#9f1239', 'radius' => '22px', 'deco' => '"💝"')),
+        'mikolajki' => array('Mikołajki', 'okazja', array('bg' => 'linear-gradient(160deg,#14532d,#166534)', 'text' => '#ffffff', 'accent' => '#fde68a', 'accent-text' => '#14532d', 'radius' => '16px', 'deco' => '"🎅"')),
     );
 
     /** @return array<string,string> Wszystkie style: klucz i etykieta. */
@@ -56,6 +59,10 @@ final class Popup
             'boze-narodzenie' => array('name' => 'Boże Narodzenie', 'settings' => array('style' => 'boze-narodzenie', 'title' => 'Wesołych Świąt!', 'message' => "Życzymy spokojnych i radosnych Świąt Bożego Narodzenia.\n\nW czasie świąt odpowiadamy na wiadomości z opóźnieniem.", 'button_text' => 'Wesołych Świąt', 'button_url' => '')),
             'wielkanoc' => array('name' => 'Wielkanoc', 'settings' => array('style' => 'wielkanoc', 'title' => 'Wesołego Alleluja!', 'message' => "Życzymy zdrowych i pogodnych Świąt Wielkanocnych.\n\nW czasie świąt odpowiadamy na wiadomości z opóźnieniem.", 'button_text' => 'Dziękuję', 'button_url' => '')),
             'niepodleglosc' => array('name' => 'Święto Niepodległości', 'settings' => array('style' => 'niepodleglosc', 'title' => '11 listopada, Narodowe Święto Niepodległości', 'message' => "W tym dniu nie pracujemy.\n\nNa wiadomości odpowiemy w najbliższy dzień roboczy.", 'button_text' => 'Rozumiem', 'button_url' => '')),
+            // Szablony sprzedażowe nie zawierają wymyślonych rabatów ani terminów. Pola w nawiasach uzupełnia właściciel strony.
+            'black-friday' => array('name' => 'Black Friday', 'settings' => array('style' => 'black-friday', 'title' => 'Black Friday', 'message' => "[Wpisz rabat i to, co obejmuje promocja.]\n\nOferta trwa do [wpisz datę].", 'button_text' => 'Zobacz ofertę', 'button_url' => '')),
+            'walentynki' => array('name' => 'Walentynki', 'settings' => array('style' => 'walentynki', 'title' => 'Prezent na Walentynki', 'message' => "Szukasz prezentu dla bliskiej osoby?\n\nZobacz nasze propozycje na 14 lutego.", 'button_text' => 'Zobacz propozycje', 'button_url' => '')),
+            'mikolajki' => array('name' => 'Mikołajki', 'settings' => array('style' => 'mikolajki', 'title' => 'Mikołajki już 6 grudnia', 'message' => "Zobacz nasze pomysły na mikołajkowy prezent.\n\nZamówienia do Mikołajek przyjmujemy do [wpisz datę].", 'button_text' => 'Zobacz pomysły', 'button_url' => '')),
         );
     }
 
