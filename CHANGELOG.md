@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.5.1, 16 listopada 2026
+
+- Popup: usunięte pole wait_for_cookies i czekanie na baner Complianz. Konfiguracja w atrybutach data-* okna zamiast wp_localize_script, skrypt z data-no-optimize, data-no-defer i data-cfasync (LiteSpeed opóźniał go do pierwszej interakcji, przez co popup wyskakiwał dopiero po kliknięciu banera cookies).
+
 ## 2.5.0, 16 listopada 2026
 
 - Panel jako strona najwyższego poziomu (admin.php?page=ai-site-manager, pozycja 3); stary adres options-general.php przekierowuje.

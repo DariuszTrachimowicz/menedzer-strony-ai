@@ -116,7 +116,6 @@ final class AdminPage
             'text' => wp_unslash((string) ($_POST['popup_text'] ?? '')),
             'radius' => (int) ($_POST['popup_radius'] ?? 12),
             'custom_css' => wp_unslash((string) ($_POST['popup_css'] ?? '')),
-            'wait_for_cookies' => ! empty($_POST['popup_wait_cookies']),
         ));
         $this->redirect('popup_saved', 'popup');
     }
@@ -287,8 +286,7 @@ final class AdminPage
                 <label for="asm-popup-days-field">Po zamknięciu nie pokazuj przez (dni)</label>
                 <input id="asm-popup-days-field" class="asm-short" type="number" min="0" max="365" name="popup_days" value="<?php echo (int) $popup['dismiss_days']; ?>">
                 <p class="description">0 oznacza, że popup pokaże się przy każdej wizycie.</p>
-                <label class="asm-check"><input type="checkbox" name="popup_wait_cookies" value="1" <?php checked(! empty($popup['wait_for_cookies'])); ?>> Pokaż dopiero po zamknięciu banera cookies (Complianz)</label>
-                <p class="description">Wyłącz, jeśli popup ma się pojawić od razu, razem z banerem cookies.</p>
+                <p class="description">Popup pojawia się od razu po wejściu na stronę, także przed zamknięciem banera cookies.</p>
             </section>
             <section class="asm-surface">
                 <h2>Wygląd</h2>

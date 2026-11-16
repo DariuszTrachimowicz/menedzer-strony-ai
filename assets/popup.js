@@ -2,8 +2,13 @@
   'use strict';
 
   var dialog = document.getElementById('asm-popup');
-  var config = window.asmPopupConfig || {};
   if (!dialog) return;
+  var config = {
+    revision: dialog.getAttribute('data-revision'),
+    dismissDays: dialog.getAttribute('data-dismiss-days'),
+    preview: dialog.getAttribute('data-preview') === '1',
+    style: dialog.classList.contains('asm-popup--auto') ? 'auto' : ''
+  };
 
   var key = 'asm_popup_dismissed_' + String(config.revision || 'default');
   var days = Math.max(0, Number(config.dismissDays || 0));
@@ -17,10 +22,6 @@
     } catch (error) {
       return false;
     }
-  }
-
-  function cookieDialogActive() {
-    return Boolean(document.querySelector('.cmplz-cookiebanner:not(.cmplz-dismissed), .cmplz-cookiebanner[aria-hidden="false"]'));
   }
 
   function focusables() {
@@ -104,12 +105,9 @@
     }
   }
 
-  function openWhenReady(attempt) {
+  // Popup pokazuje się od razu, także gdy na stronie jest jeszcze baner cookies.
+  function open() {
     if (dismissed()) return;
-    if (String(config.waitForCookies) !== '0' && cookieDialogActive() && attempt < 120) {
-      window.setTimeout(function () { openWhenReady(attempt + 1); }, 500);
-      return;
-    }
     if (config.style === 'auto') applySiteStyle();
     previousFocus = document.activeElement;
     dialog.hidden = false;
@@ -122,5 +120,5 @@
     if (event.target.closest('[data-asm-close]')) close();
   });
   document.addEventListener('keydown', onKeydown);
-  openWhenReady(0);
+  open();
 }());

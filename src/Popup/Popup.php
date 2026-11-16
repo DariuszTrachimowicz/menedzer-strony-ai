@@ -30,7 +30,6 @@ final class Popup
             'text' => '#1d2327',
             'radius' => 12,
             'custom_css' => '',
-            'wait_for_cookies' => true,
         );
     }
 
@@ -38,7 +37,9 @@ final class Popup
     public static function settings(): array
     {
         $saved = get_option(self::OPTION, array());
-        return array_merge(self::defaults(), is_array($saved) ? $saved : array());
+        // Tylko znane pola: klucze usunięte w nowszych wersjach nie wracają w odczycie ani w kopii przed zmianą.
+        $defaults = self::defaults();
+        return array_merge($defaults, array_intersect_key(is_array($saved) ? $saved : array(), $defaults));
     }
 
     /** @return array<string,mixed> */
@@ -62,7 +63,6 @@ final class Popup
             'text' => $color('text'),
             'radius' => max(0, min(40, (int) ($data['radius'] ?? $defaults['radius']))),
             'custom_css' => self::cleanCss((string) ($data['custom_css'] ?? '')),
-            'wait_for_cookies' => ! array_key_exists('wait_for_cookies', $data) || ! empty($data['wait_for_cookies']),
         );
         update_option(self::OPTION, $clean, false);
         return $clean;
@@ -79,6 +79,15 @@ final class Popup
     {
         add_action('wp_enqueue_scripts', array($this, 'enqueue'));
         add_action('wp_footer', array($this, 'render'));
+        add_filter('script_loader_tag', array($this, 'immediate'), 10, 2);
+    }
+
+    // LiteSpeed i podobne optymalizatory opóźniają skrypty do pierwszej interakcji. Popup ma się pokazać od razu.
+    public function immediate(string $tag, string $handle): string
+    {
+        return $handle === 'asm-popup'
+            ? str_replace('<script ', '<script data-no-optimize="1" data-no-defer="1" data-cfasync="false" ', $tag)
+            : $tag;
     }
 
     // Podgląd pokazuje zapisany popup administratorowi także wtedy, gdy popup jest wyłączony.
@@ -115,14 +124,6 @@ final class Popup
             self::assetVersion('assets/popup.js'),
             true
         );
-        wp_localize_script('asm-popup', 'asmPopupConfig', array(
-            'revision' => substr(hash('sha256', $settings['title'] . '|' . $settings['message']), 0, 12),
-            'dismissDays' => (int) $settings['dismiss_days'],
-            'style' => $settings['style'],
-            'preview' => self::preview(),
-            // wp_localize_script zamienia false na pusty napis, dlatego jawne 1 albo 0.
-            'waitForCookies' => empty($settings['wait_for_cookies']) ? 0 : 1,
-        ));
     }
 
     public function render(): void
@@ -139,8 +140,6 @@ final class Popup
             $settings['message'] = '<p>To jest podgląd. Wpisz treść popupu w ustawieniach wtyczki.</p>';
             $settings['button_text'] = $settings['button_text'] !== '' ? $settings['button_text'] : 'Rozumiem';
         }
-        // Edytor zapisuje akapity jako puste wiersze. Bez wpautop treść zlewała się w jeden blok.
-        $settings['message'] = wpautop((string) $settings['message']);
         echo self::renderMarkup($settings); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
@@ -165,12 +164,15 @@ final class Popup
 
         return '<div id="asm-popup" class="asm-popup asm-popup--' . $style . '" role="dialog" aria-modal="true" '
             . 'aria-labelledby="asm-popup-title" aria-describedby="asm-popup-description" tabindex="-1" hidden '
+            . 'data-revision="' . substr(hash('sha256', $settings['title'] . '|' . $settings['message']), 0, 12) . '" '
+            . 'data-dismiss-days="' . (int) $settings['dismiss_days'] . '" data-preview="' . (self::preview() ? '1' : '0') . '" '
             . 'style="' . $escape($vars) . '">'
             . '<div class="asm-popup__backdrop" data-asm-close></div>'
             . '<div class="asm-popup__box" role="document">'
             . '<button type="button" class="asm-popup__x" aria-label="Zamknij okno" data-asm-close>&times;</button>'
             . '<h2 id="asm-popup-title" class="asm-popup__title">' . $escape($settings['title']) . '</h2>'
-            . '<div id="asm-popup-description" class="asm-popup__msg">' . (string) $settings['message'] . '</div>'
+            // Edytor zapisuje akapity jako puste wiersze. Bez wpautop treść zlewała się w jeden blok.
+            . '<div id="asm-popup-description" class="asm-popup__msg">' . (function_exists('wpautop') ? wpautop((string) $settings['message']) : (string) $settings['message']) . '</div>'
             . $button
             . '</div></div>';
     }
