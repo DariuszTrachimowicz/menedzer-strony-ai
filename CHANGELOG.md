@@ -3,6 +3,7 @@
 ## 2.6.2, 17 listopada 2026
 
 - Updater::release() czyta wersję z przekierowania github.com/<repo>/releases/latest zamiast z api.github.com (limit 60 zapytań na godzinę na IP). Adres paczki wynika z wersji: releases/download/vX.Y.Z/ai-site-manager-X.Y.Z.zip.
+- Panel popupu: kolorowy komunikat stanu (klasa asm-state: on, warn, off, error) pod przełącznikiem, także po odświeżeniu strony.
 
 ## 2.6.1, 17 listopada 2026
 

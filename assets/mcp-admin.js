@@ -24,17 +24,18 @@
     toggle.addEventListener('change', async () => {
       const wanted = toggle.checked;
       toggle.disabled = true;
-      status.textContent = 'Zapisywanie.';
+      const show = (state, text) => { status.className = 'asm-state is-' + state; status.textContent = text; };
+      show('busy', 'Zapisywanie.');
       try {
         const body = new URLSearchParams({ action: 'asm2_popup_toggle', nonce: toggle.dataset.nonce, enabled: wanted ? '1' : '0' });
         const response = await fetch(toggle.dataset.url, { method: 'POST', body, credentials: 'same-origin', cache: 'no-store' });
         const result = await response.json();
         if (!response.ok || !result.success) throw new Error(result.data && result.data.message ? result.data.message : 'Nie udało się zapisać. Spróbuj ponownie.');
-        status.textContent = result.data.message;
+        show(result.data.state, result.data.message);
       } catch (error) {
         // Stan pola wraca do zapisanego, żeby ekran nie pokazywał czegoś innego niż strona.
         toggle.checked = !wanted;
-        status.textContent = error.message || 'Nie udało się zapisać. Spróbuj ponownie.';
+        show('error', error.message || 'Nie udało się zapisać. Spróbuj ponownie.');
       }
       toggle.disabled = false;
       toggle.focus();

@@ -105,6 +105,7 @@ Wyniki narzędzi trafiają do aplikacji klienta i mogą być przetwarzane przez 
 = 2.6.2, 17 listopada 2026 =
 
 * Sprawdzanie nowych wersji działa także na współdzielonym hostingu, gdzie limit zapytań do GitHuba wyczerpują inne strony.
+* Stan popupu pod przełącznikiem ma kolor: zielony, gdy popup jest widoczny, szary, gdy jest wyłączony, żółty, gdy brakuje treści.
 
 = 2.6.1, 17 listopada 2026 =
 

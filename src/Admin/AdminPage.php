@@ -137,10 +137,19 @@ final class AdminPage
         if ((bool) $saved['enabled'] !== $enabled) {
             wp_send_json_error(array('message' => 'Nie udało się zapisać. Spróbuj ponownie.'), 500);
         }
-        $message = ! $enabled
-            ? 'Zapisano: popup wyłączony.'
-            : (trim((string) $saved['message']) === '' ? 'Zapisano: popup włączony, ale bez treści się nie pokaże.' : 'Zapisano: popup włączony.');
-        wp_send_json_success(array('enabled' => $enabled, 'message' => $message));
+        list($state, $text) = self::popupState($saved);
+        wp_send_json_success(array('enabled' => $enabled, 'state' => $state, 'message' => 'Zapisano. ' . $text));
+    }
+
+    /** @return array{0:string,1:string} Stan popupu do kolorowego komunikatu: on, warn albo off, i jego opis. */
+    private static function popupState(array $settings): array
+    {
+        if (empty($settings['enabled'])) {
+            return array('off', 'Popup jest wyłączony. Odwiedzający go nie widzą.');
+        }
+        return trim((string) $settings['message']) === ''
+            ? array('warn', 'Popup jest włączony, ale nie ma treści, więc się nie pokaże.')
+            : array('on', 'Popup jest włączony. Odwiedzający go widzą.');
     }
 
     public function popupLibrary(): void
@@ -318,7 +327,9 @@ final class AdminPage
             <section class="asm-surface">
                 <h2>Treść popupu</h2>
                 <label class="asm-check"><input type="checkbox" name="popup_enabled" value="1" data-popup-toggle data-nonce="<?php echo esc_attr(wp_create_nonce(self::NONCE)); ?>" data-url="<?php echo esc_url(admin_url('admin-ajax.php')); ?>" <?php checked(! empty($popup['enabled'])); ?>> Pokazuj popup odwiedzającym</label>
-                <p class="description" id="asm-popup-toggle-status" role="status" aria-live="polite">Ten przełącznik zapisuje się od razu. Treść i wygląd zapisujesz przyciskiem „Zapisz popup”.</p>
+                <?php list($popupState, $popupStateText) = self::popupState($popup); ?>
+                <p class="asm-state is-<?php echo esc_attr($popupState); ?>" id="asm-popup-toggle-status" role="status" aria-live="polite"><?php echo esc_html($popupStateText); ?></p>
+                <p class="description">Ten przełącznik zapisuje się od razu. Treść i wygląd zapisujesz przyciskiem „Zapisz popup”.</p>
                 <label for="asm-popup-title-field">Tytuł</label>
                 <input id="asm-popup-title-field" name="popup_title" value="<?php echo esc_attr($popup['title']); ?>">
                 <label for="asm_popup_message">Treść</label>
