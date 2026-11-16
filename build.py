@@ -8,7 +8,7 @@ version = re.search(r"define\('ASM_VERSION', '([\d.]+)'\)", open(os.path.join(ro
 os.makedirs(os.path.join(root, 'dist'), exist_ok=True)
 out = os.path.join(root, 'dist', f'ai-site-manager-{version}.zip')
 skip_dirs = {'.git', '.github', 'tests', 'dist'}
-skip_files = {'build.py', '.gitignore'}
+skip_files = {'build.py', '.gitignore', 'AGENTS.md', 'CLAUDE.md'}
 with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
     for base, dirs, files in os.walk(root):
         dirs[:] = sorted(d for d in dirs if d not in skip_dirs)
