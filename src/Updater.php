@@ -23,7 +23,9 @@ final class Updater
     {
         // Nazwa filtra pochodzi z hosta w nagłówku Update URI pliku wtyczki.
         add_filter('update_plugins_d-x.pl', array(self::class, 'check'), 10, 3);
-        add_filter('plugins_api', array(self::class, 'info'), 10, 3);
+        // Ostatni priorytet: część wtyczek (np. CMS Portal motywów CMSSuperHeroes, priorytet 20) zwraca false
+        // dla każdego obcego sluga i kasuje dane okna "Zobacz szczegóły" podane wcześniej.
+        add_filter('plugins_api', array(self::class, 'info'), PHP_INT_MAX, 3);
     }
 
     /** @return array{version:string,package:string,url:string}|null */

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.7.1, 18 listopada 2026
+
+- Updater::hooks(): filtr plugins_api na priorytecie PHP_INT_MAX. CMS Portal 2.1.3 (motyw Wastia na rs2.pl) na priorytecie 20 zwracał false dla obcych slugów i okno „Zobacz szczegóły” było puste.
+
 ## 2.7.0, 17 listopada 2026
 
 - Popup::PRESETS i templates(): okazje black-friday, walentynki, mikolajki (razem 7 okazji). Szablony sprzedażowe mają pola w nawiasach kwadratowych zamiast wymyślonych rabatów i terminów.
