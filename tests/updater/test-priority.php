@@ -9,4 +9,7 @@ require ASM_PLUGIN_DIR . 'src/Updater.php';
 ASM\Updater::hooks();
 // CMS Portal na priorytecie 20 zwraca false dla obcych slugów: nasz filtr musi działać po nim.
 assert(($GLOBALS['hooks']['plugins_api'] ?? 0) > 20, 'plugins_api priority');
+// Okno szczegółów: WordPress 7.1.5 ostrzega, gdy version_compare(wersja, tested, '<=') jest fałszywe.
+$src = (string) file_get_contents(ASM_PLUGIN_DIR . 'src/Updater.php');
+assert(preg_match("~'tested' => '([0-9.]+)'~", $src, $m) === 1 && version_compare('7.1.5', $m[1], '<='), 'tested >= 7.1.5');
 echo "OK\n";

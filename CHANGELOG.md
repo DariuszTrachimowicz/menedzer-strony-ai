@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.7.2, 19 listopada 2026
+
+- Updater::info() i readme: tested 7.2 zamiast 7.1.4 (testy na 7.1.5 i 7.2-RC2). install_plugin_information() w 7.1.5 porównuje pełną wersję: version_compare(get_bloginfo('version'), tested, '<='), więc 7.1.4 dawało ostrzeżenie o braku testów.
+
 ## 2.7.1, 18 listopada 2026
 
 - Updater::hooks(): filtr plugins_api na priorytecie PHP_INT_MAX. CMS Portal 2.1.3 (motyw Wastia na rs2.pl) na priorytecie 20 zwracał false dla obcych slugów i okno „Zobacz szczegóły” było puste.

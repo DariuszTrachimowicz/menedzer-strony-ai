@@ -93,7 +93,7 @@ final class Updater
             'homepage' => 'https://d-x.pl/wtyczki/menedzer-strony-ai/',
             'requires' => '7.1',
             // Najwyższa wersja WordPressa, na której wydanie było uruchamiane. Starsza wartość pokazuje w oknie ostrzeżenie.
-            'tested' => '7.1.4',
+            'tested' => '7.2',
             'requires_php' => '8.2',
             'download_link' => $release['package'] ?? '',
             'sections' => self::sections(),

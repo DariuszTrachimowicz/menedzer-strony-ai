@@ -4,7 +4,7 @@
  * Plugin Name:       Menedżer Strony AI
  * Plugin URI:        https://d-x.pl/wtyczki/menedzer-strony-ai/
  * Description:       Połączenia AI przez MCP i OAuth oraz zarządzanie WordPressem z podglądem zmian i cofaniem z kopii.
- * Version:           2.7.1
+ * Version:           2.7.2
  * Requires at least: 7.1
  * Requires PHP:      8.2
  * Author:            Dariusz Trachimowicz
@@ -21,7 +21,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('ASM_VERSION', '2.7.1');
+define('ASM_VERSION', '2.7.2');
 define('ASM_PLUGIN_FILE', __FILE__);
 define('ASM_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('ASM_REST_NAMESPACE', 'asm/v2');
