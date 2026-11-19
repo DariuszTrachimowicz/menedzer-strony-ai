@@ -95,14 +95,30 @@ final class OperationEngine
         }
 
         $lockKey = $this->lockKey($operation);
-        if ($this->locks !== null && ! $this->locks->acquire($lockKey, $operation->id())) {
-            $operation->setStatus('failed', 'asm_resource_locked');
-            $this->store->save($operation);
-            $this->audit('operation.lock_failed', $operation);
-            return $operation;
+        if ($this->locks !== null && ! $this->locks->acquire($lockKey, $operation->id(), $this->lockTtl($operation))) {
+            // Inne wykonanie mogło już zmienić stan: zapisujemy porażkę tylko na wciąż nietkniętym podglądzie.
+            $fresh = $this->requireOperation($operationId);
+            if ($fresh->status() !== 'previewed') {
+                return $fresh;
+            }
+            $fresh->setStatus('failed', 'asm_resource_locked');
+            // Zapis warunkowy: jeśli pierwsze wykonanie zdążyło zmienić status, zostaje jego wynik.
+            $saved = method_exists($this->store, 'saveIfStatus')
+                ? $this->store->saveIfStatus($fresh, 'previewed')
+                : ($this->store->save($fresh) ?? true);
+            if (! $saved) {
+                return $this->requireOperation($operationId);
+            }
+            $this->audit('operation.lock_failed', $fresh);
+            return $fresh;
         }
 
         try {
+            // Drugie wywołanie tej samej operacji (inny klucz) czekało na blokadę: nie nadpisujemy wyniku pierwszego.
+            $operation = $this->requireOperation($operationId);
+            if ($operation->status() !== 'previewed') {
+                return $operation;
+            }
             $handler = $this->requireHandler($operation);
             $snapshotTarget = $operation->target();
             $snapshotTarget['_operation_id'] = $operation->id();
@@ -192,7 +208,7 @@ final class OperationEngine
                 throw new OperationFailure('asm_rollback_unavailable', 'Brak mierzalnego stanu do automatycznego cofnięcia tej operacji.');
             }
             $lockKey = $this->lockKey($operation);
-            if ($this->locks !== null && !$this->locks->acquire($lockKey, $operation->id())) {
+            if ($this->locks !== null && !$this->locks->acquire($lockKey, $operation->id(), $this->lockTtl($operation))) {
                 throw new OperationFailure('asm_resource_locked', 'Zasób jest zablokowany.');
             }
             try {
@@ -204,7 +220,19 @@ final class OperationEngine
                 if ($this->locks !== null) { $this->locks->release($lockKey, $operation->id()); }
             }
         }
-        return $this->restore($operation);
+        // Operacja zatrzymana przed zmianą (blokada, klucz) nie ma czego cofać: przywrócenie kopii nadpisałoby późniejsze zmiany.
+        if ($operation->status() === 'failed' && in_array($operation->errorCode(), array('asm_resource_locked', 'asm_idempotency_conflict'), true)) {
+            throw new OperationFailure('asm_rollback_unavailable', 'Operacja nie została wykonana, więc nie ma czego cofać.');
+        }
+        $lockKey = $this->lockKey($operation);
+        if ($this->locks !== null && ! $this->locks->acquire($lockKey, $operation->id(), $this->lockTtl($operation))) {
+            throw new OperationFailure('asm_resource_locked', 'Zasób jest zablokowany.');
+        }
+        try {
+            return $this->restore($this->requireOperation($operationId));
+        } finally {
+            if ($this->locks !== null) { $this->locks->release($lockKey, $operation->id()); }
+        }
     }
 
     private function canGuard(Operation $operation): bool
@@ -299,6 +327,12 @@ final class OperationEngine
         }
 
         return $handler;
+    }
+
+    // Aktualizacja wtyczki, motywu albo WordPressa trwa dłużej niż zwykła zmiana: blokada nie może wygasnąć w trakcie.
+    private function lockTtl(Operation $operation): int
+    {
+        return preg_match('/^(plugin|theme|core)\./', $operation->action()) === 1 ? 900 : 120;
     }
 
     private function lockKey(Operation $operation): string

@@ -127,6 +127,9 @@ final class Plugin
         );
         $router = new Router(new ApplicationPasswordGate(), $controller);
         add_action('rest_api_init', array($router, 'registerRoutes'));
+        add_action('asm_mcp_cleanup', static function () use ($wpdb, $storage): void {
+            \ASM\Storage\Retention::run($wpdb, $storage);
+        });
         Migration::run();
         (new Popup())->hooks();
         Updater::hooks();

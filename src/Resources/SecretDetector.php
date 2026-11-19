@@ -18,8 +18,19 @@ final class SecretDetector
      * @param mixed $value
      * @return mixed
      */
-    public static function publicValue(string $name, $value)
+    public static function publicValue(string $name, $value, int $depth = 0)
     {
-        return self::isSecretName($name) ? '[REDACTED]' : $value;
+        if (self::isSecretName($name)) {
+            return '[REDACTED]';
+        }
+        // Hasła siedzą też w opcjach złożonych, np. wp_mail_smtp['smtp']['pass'].
+        if ((is_array($value) || is_object($value)) && $depth < 32) {
+            $public = array();
+            foreach ((array) $value as $key => $item) {
+                $public[$key] = self::publicValue((string) $key, $item, $depth + 1);
+            }
+            return $public;
+        }
+        return $value;
     }
 }

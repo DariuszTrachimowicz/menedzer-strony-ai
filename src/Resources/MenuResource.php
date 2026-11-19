@@ -144,7 +144,7 @@ final class MenuResource
         }
         foreach ((array) $snapshot['meta'] as $key => $values) {
             foreach ((array) $values as $value) {
-                add_post_meta($itemId, (string) $key, maybe_unserialize($value));
+                add_post_meta($itemId, (string) $key, wp_slash(maybe_unserialize($value)));
             }
         }
         wp_set_object_terms($itemId, array_map('intval', (array) $snapshot['terms']), 'nav_menu', false);

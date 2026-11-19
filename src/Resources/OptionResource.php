@@ -91,6 +91,10 @@ final class OptionResource
             delete_option($name);
             return;
         }
+        // Odczyt ukrywa hasła jako [REDACTED]; zapis takiej wartości z powrotem skasowałby prawdziwe hasło.
+        if ($this->mode === 'update' && self::containsRedacted($change['value'] ?? null)) {
+            throw new OperationFailure('asm_option_redacted_value', 'Wartość zawiera [REDACTED]. Hasła w opcjach zmienia się akcją option.replace_secret.');
+        }
         $autoload = isset($change['autoload']) ? rest_sanitize_boolean($change['autoload']) : null;
         $result = $autoload === null
             ? update_option($name, $change['value'] ?? null)
@@ -98,6 +102,20 @@ final class OptionResource
         if (! $result && get_option($name, new \stdClass()) != ($change['value'] ?? null)) {
             throw new OperationFailure('asm_option_update_failed', 'Nie udało się zmienić opcji.');
         }
+    }
+
+    /** @param mixed $value */
+    private static function containsRedacted($value): bool
+    {
+        if (is_array($value) || is_object($value)) {
+            foreach ((array) $value as $item) {
+                if (self::containsRedacted($item)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return $value === '[REDACTED]';
     }
 
     public function verify(array $target, array $change): ?bool
@@ -116,6 +134,12 @@ final class OptionResource
             delete_option($name);
             return;
         }
-        update_option($name, $snapshot['value'], $snapshot['autoload'] === 'yes');
+        update_option($name, $snapshot['value']);
+        // WordPress 6.6+ zapisuje autoload jako on/off/auto: przywracamy dokładnie wartość z kopii, nie wartość logiczną.
+        global $wpdb;
+        $wpdb->update($wpdb->options, array('autoload' => (string) $snapshot['autoload']), array('option_name' => $name));
+        wp_cache_delete('alloptions', 'options');
+        wp_cache_delete('notoptions', 'options');
+        wp_cache_delete($name, 'options');
     }
 }

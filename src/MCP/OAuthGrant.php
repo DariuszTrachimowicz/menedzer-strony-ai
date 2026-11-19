@@ -6,6 +6,7 @@ namespace ASM\MCP;
 final class OAuthGrant {
     public const CODE_TTL=120;
     public const ACCESS_TTL=3600;
+    private const REFRESH_RETRY_GRACE=30;
     public static function table(): string { return Connections::table('oauth_credentials'); }
     public static function install(): void {
         global $wpdb;
@@ -91,7 +92,12 @@ final class OAuthGrant {
     public static function exchangeCode(array $request) {
         return self::locked($request['code'],'code',static function(array $credential,array $connection) use ($request) {
             global $wpdb;
-            if ((int)$credential['consumed_at'] || (int)$credential['expires_at']<=time() || !hash_equals($credential['client_id'],$request['client_id']) || !hash_equals($credential['redirect_uri'],$request['redirect_uri']) || !hash_equals($credential['resource'],$request['resource']) || !self::verifyPKCE($request['code_verifier'],$credential['challenge']) || $credential['scope']!==$connection['scope']) { return OAuthClients::error('invalid_grant'); }
+            if ((int)$credential['consumed_at']) {
+                // RFC 6749 4.1.2: drugie użycie kodu unieważnia tokeny już wydane na jego podstawie.
+                if ($wpdb->update(Connections::table('connections'),['revoked'=>1,'revoked_at'=>time()],['id'=>$connection['id']])===false || !Connections::audit($connection,'oauth.code_replay','revoked')) { throw new \RuntimeException('oauth_storage'); }
+                return OAuthClients::error('invalid_grant');
+            }
+            if ((int)$credential['expires_at']<=time() || !hash_equals($credential['client_id'],$request['client_id']) || !hash_equals($credential['redirect_uri'],$request['redirect_uri']) || !hash_equals($credential['resource'],$request['resource']) || !self::verifyPKCE($request['code_verifier'],$credential['challenge']) || $credential['scope']!==$connection['scope']) { return OAuthClients::error('invalid_grant'); }
             if ($wpdb->update(self::table(),['consumed_at'=>time()],['hash'=>$credential['hash'],'consumed_at'=>0])!==1) { return OAuthClients::error('invalid_grant'); }
             $reply=self::tokens($credential,$connection);
             if (is_wp_error($reply)) { throw new \RuntimeException('oauth_storage'); }
@@ -103,6 +109,15 @@ final class OAuthGrant {
             global $wpdb;
             if (!hash_equals($credential['client_id'],$request['client_id']) || !hash_equals($credential['resource'],$request['resource']) || $credential['scope']!==$connection['scope'] || (isset($request['scope']) && $request['scope']!==$credential['scope'])) { return OAuthClients::error('invalid_grant'); }
             if ((int)$credential['consumed_at']) {
+                // Ponowienie tuż po wymianie (zgubiona odpowiedź, dwa procesy naraz) nie jest kradzieżą: klient dostaje
+                // nową parę tokenów, bo poprzedniej mógł nie otrzymać. Po oknie ponowienia zużyty token zrywa połączenie.
+                if ((int)$credential['consumed_at']>time()-self::REFRESH_RETRY_GRACE) {
+                    if ((int)$credential['expires_at']!==0 && (int)$credential['expires_at']<=time()) { return OAuthClients::error('invalid_grant'); }
+                    if (!Connections::audit($connection,'oauth.refresh_retry','issued')) { throw new \RuntimeException('oauth_storage'); }
+                    $reply=self::tokens($credential,$connection);
+                    if (is_wp_error($reply)) { throw new \RuntimeException('oauth_storage'); }
+                    return $reply;
+                }
                 if ($wpdb->update(Connections::table('connections'),['revoked'=>1,'revoked_at'=>time()],['id'=>$connection['id']])===false || !Connections::audit($connection,'oauth.refresh_replay','revoked')) { throw new \RuntimeException('oauth_storage'); }
                 return OAuthClients::error('invalid_grant');
             }

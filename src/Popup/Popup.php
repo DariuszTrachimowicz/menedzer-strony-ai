@@ -140,8 +140,24 @@ final class Popup
     public static function save(array $data): array
     {
         $clean = self::clean($data);
-        update_option(self::OPTION, $clean, false);
+        // Wczytywana przy starcie: popup czyta ją na każdej stronie publicznej, bez dodatkowego zapytania.
+        update_option(self::OPTION, $clean, true);
+        self::purgePageCache();
         return $clean;
+    }
+
+    // Zapisane strony mają wbudowany popup (albo jego brak): bez czyszczenia odwiedzający widzą stary stan.
+    private static function purgePageCache(): void
+    {
+        if (has_action('litespeed_purge_all')) {
+            do_action('litespeed_purge_all');
+        }
+        if (function_exists('w3tc_flush_all')) {
+            w3tc_flush_all();
+        }
+        if (function_exists('wp_cache_clear_cache')) {
+            wp_cache_clear_cache();
+        }
     }
 
     /** @return array<string,mixed> */
@@ -154,8 +170,9 @@ final class Popup
         $style = (string) ($data['style'] ?? $defaults['style']);
         $clean = array(
             'enabled' => ! empty($data['enabled']),
-            'title' => sanitize_text_field((string) ($data['title'] ?? $defaults['title'])),
-            'message' => wp_kses_post((string) ($data['message'] ?? $defaults['message'])),
+            // Limity długości: biblioteka trzyma do 50 popupów w jednej opcji.
+            'title' => mb_substr(sanitize_text_field((string) ($data['title'] ?? $defaults['title'])), 0, 200),
+            'message' => mb_substr(wp_kses_post((string) ($data['message'] ?? $defaults['message'])), 0, 20000),
             'button_text' => sanitize_text_field((string) ($data['button_text'] ?? $defaults['button_text'])),
             'button_url' => esc_url_raw(trim((string) ($data['button_url'] ?? '')), array('http', 'https')),
             'accent' => $color('accent'),
@@ -276,7 +293,8 @@ final class Popup
             . '<button type="button" class="asm-popup__x" aria-label="Zamknij okno" data-asm-close>&times;</button>'
             . '<h2 id="asm-popup-title" class="asm-popup__title">' . $escape($settings['title']) . '</h2>'
             // Edytor zapisuje akapity jako puste wiersze. Bez wpautop treść zlewała się w jeden blok.
-            . '<div id="asm-popup-description" class="asm-popup__msg">' . (function_exists('wpautop') ? wpautop((string) $settings['message']) : (string) $settings['message']) . '</div>'
+            // wp_kses_post także przy wyświetlaniu: opcję można zapisać z pominięciem clean() (option.update).
+            . '<div id="asm-popup-description" class="asm-popup__msg">' . wp_kses_post(function_exists('wpautop') ? wpautop((string) $settings['message']) : (string) $settings['message']) . '</div>'
             . $button
             . '</div></div>';
     }

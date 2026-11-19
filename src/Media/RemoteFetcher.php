@@ -33,13 +33,30 @@ final class RemoteFetcher
                 return new \WP_Error('asm_remote_unavailable', 'Klient HTTP WordPressa nie jest dostępny.', array('status' => 503));
             }
 
-            $response = wp_safe_remote_get($current, array(
-                'timeout' => 20,
-                'redirection' => 0,
-                'reject_unsafe_urls' => true,
-                'limit_response_size' => $maxBytes + 1,
-                'headers' => array('Accept' => 'image/*,application/pdf'),
-            ));
+            // Połączenie idzie na sprawdzone adresy IP: drugie rozwiązanie nazwy (DNS rebinding) nie przekieruje go do sieci prywatnej.
+            // shortcut: przypięcie działa przy transporcie curl, który WordPress wybiera domyślnie.
+            $parts = (array) parse_url($current);
+            $host = trim((string) ($parts['host'] ?? ''), '[]');
+            $port = (int) ($parts['port'] ?? 443);
+            $pin = static function ($handle) use ($host, $port, $safe): void {
+                if (! defined('CURLOPT_RESOLVE') || filter_var($host, FILTER_VALIDATE_IP) || $safe === array()) {
+                    return;
+                }
+                $ips = array_map(static fn(string $ip): string => strpos($ip, ':') !== false ? '[' . $ip . ']' : $ip, $safe);
+                curl_setopt($handle, CURLOPT_RESOLVE, array($host . ':' . $port . ':' . implode(',', $ips)));
+            };
+            add_action('http_api_curl', $pin, 10, 1);
+            try {
+                $response = wp_safe_remote_get($current, array(
+                    'timeout' => 20,
+                    'redirection' => 0,
+                    'reject_unsafe_urls' => true,
+                    'limit_response_size' => $maxBytes + 1,
+                    'headers' => array('Accept' => 'image/*,application/pdf'),
+                ));
+            } finally {
+                remove_action('http_api_curl', $pin, 10);
+            }
             if (is_wp_error($response)) {
                 return $response;
             }
@@ -70,7 +87,7 @@ final class RemoteFetcher
         return new \WP_Error('asm_remote_too_many_redirects', 'Przekroczono limit przekierowań.', array('status' => 502));
     }
 
-    /** @return true|\WP_Error */
+    /** @return array<int,string>|\WP_Error Sprawdzone, publiczne adresy IP hosta. */
     private function validateUrl(string $url)
     {
         $parts = parse_url($url);
@@ -101,7 +118,7 @@ final class RemoteFetcher
                 );
             }
         }
-        return true;
+        return array_values(array_map('strval', $addresses));
     }
 
     /** @return array<int,string> */

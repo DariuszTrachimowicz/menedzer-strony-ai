@@ -55,27 +55,54 @@ final class DirectorySnapshot
                 throw new \InvalidArgumentException('Kopia zawiera niedozwoloną ścieżkę.');
             }
         }
-        if (! is_dir($directory) && ! mkdir($directory, 0755, true) && ! is_dir($directory)) {
+        // Najpierw cała kopia w katalogu obok, potem zamiana nazw. Błąd w połowie (np. pełny dysk)
+        // zostawia nietknięty stary katalog zamiast połowy wtyczki.
+        $directory = rtrim($directory, '/\\');
+        $suffix = bin2hex(random_bytes(4));
+        $staging = $directory . '.asm-restore-' . $suffix;
+        if (! mkdir($staging, 0755, true)) {
             throw new \RuntimeException('Nie można utworzyć katalogu komponentu.');
         }
-        self::clear($directory);
-
-        foreach ($snapshot['files'] as $relative => $file) {
-            $bytes = base64_decode((string) ($file['bytes'] ?? ''), true);
-            if (! is_string($bytes) || ! hash_equals((string) ($file['sha256'] ?? ''), hash('sha256', $bytes))) {
-                throw new \RuntimeException('Kopia pliku komponentu jest uszkodzona.');
+        try {
+            foreach ($snapshot['files'] as $relative => $file) {
+                $bytes = base64_decode((string) ($file['bytes'] ?? ''), true);
+                if (! is_string($bytes) || ! hash_equals((string) ($file['sha256'] ?? ''), hash('sha256', $bytes))) {
+                    throw new \RuntimeException('Kopia pliku komponentu jest uszkodzona.');
+                }
+                $path = $staging . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, (string) $relative);
+                $parent = dirname($path);
+                if (! is_dir($parent) && ! mkdir($parent, 0755, true) && ! is_dir($parent)) {
+                    throw new \RuntimeException('Nie można odtworzyć katalogu komponentu.');
+                }
+                if (file_put_contents($path, $bytes, LOCK_EX) !== strlen($bytes)) {
+                    throw new \RuntimeException('Nie można odtworzyć pliku komponentu.');
+                }
+                chmod($path, (int) ($file['mode'] ?? 0644));
             }
-            $path = rtrim($directory, '/\\') . DIRECTORY_SEPARATOR
-                . str_replace('/', DIRECTORY_SEPARATOR, (string) $relative);
-            $parent = dirname($path);
-            if (! is_dir($parent) && ! mkdir($parent, 0755, true) && ! is_dir($parent)) {
-                throw new \RuntimeException('Nie można odtworzyć katalogu komponentu.');
-            }
-            if (file_put_contents($path, $bytes, LOCK_EX) !== strlen($bytes)) {
-                throw new \RuntimeException('Nie można odtworzyć pliku komponentu.');
-            }
-            chmod($path, (int) ($file['mode'] ?? 0644));
+        } catch (\Throwable $error) {
+            self::remove($staging);
+            throw $error;
         }
+        $old = $directory . '.asm-old-' . $suffix;
+        if (is_dir($directory) && ! rename($directory, $old)) {
+            self::remove($staging);
+            throw new \RuntimeException('Nie można podmienić katalogu komponentu.');
+        }
+        if (! rename($staging, $directory)) {
+            if (is_dir($old)) {
+                rename($old, $directory);
+            }
+            throw new \RuntimeException('Nie można podmienić katalogu komponentu.');
+        }
+        if (is_dir($old)) {
+            self::remove($old);
+        }
+    }
+
+    private static function remove(string $directory): void
+    {
+        self::clear($directory);
+        rmdir($directory);
     }
 
     private static function validRelative(string $path): bool

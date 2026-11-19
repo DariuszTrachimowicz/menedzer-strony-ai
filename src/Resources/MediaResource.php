@@ -108,7 +108,7 @@ final class MediaResource
                 }
             }
             if (array_key_exists('alt', $change)) {
-                update_post_meta($attachmentId, '_wp_attachment_image_alt', (string) $change['alt']);
+                update_post_meta($attachmentId, '_wp_attachment_image_alt', wp_slash((string) $change['alt']));
             }
             return;
         }
@@ -224,7 +224,7 @@ final class MediaResource
         }
         foreach ((array) $snapshot['meta'] as $key => $values) {
             foreach ((array) $values as $value) {
-                add_post_meta($attachmentId, (string) $key, maybe_unserialize($value));
+                add_post_meta($attachmentId, (string) $key, wp_slash(maybe_unserialize($value)));
             }
         }
         clean_post_cache($attachmentId);
@@ -315,10 +315,13 @@ final class MediaResource
         $fields = array_intersect_key($change, array_flip(array('post_title', 'post_excerpt', 'post_content')));
         if ($fields !== array()) {
             $fields['ID'] = $attachmentId;
-            wp_update_post(wp_slash($fields), true);
+            $updated = wp_update_post(wp_slash($fields), true);
+            if (is_wp_error($updated)) {
+                throw new OperationFailure($updated->get_error_code(), $updated->get_error_message());
+            }
         }
         if (array_key_exists('alt', $change)) {
-            update_post_meta($attachmentId, '_wp_attachment_image_alt', (string) $change['alt']);
+            update_post_meta($attachmentId, '_wp_attachment_image_alt', wp_slash((string) $change['alt']));
         }
     }
 

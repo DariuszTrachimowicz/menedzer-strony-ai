@@ -173,7 +173,8 @@ final class FileResource
             $destination = $this->paths->resolve((string) ($change['destination'] ?? ''), true);
             return ! ($destination instanceof \WP_Error) && is_file($destination);
         }
-        $resolved = $this->paths->resolve($path, $this->mode !== 'delete');
+        // Po usunięciu szukamy pliku w trybie „musi istnieć”: tylko wtedy brak daje asm_path_not_found.
+        $resolved = $this->paths->resolve($path, true);
         if ($this->mode === 'delete') {
             return $resolved instanceof \WP_Error && $resolved->get_error_code() === 'asm_path_not_found';
         }
@@ -245,6 +246,10 @@ final class FileResource
         }
         $temporary = tempnam($directory, '.asm-write-');
         if ($temporary === false || file_put_contents($temporary, $content, LOCK_EX) !== strlen($content)) {
+            // Niepełny plik tymczasowy leżałby w katalogu publicznym.
+            if (is_string($temporary) && is_file($temporary)) {
+                @unlink($temporary);
+            }
             throw new OperationFailure('asm_file_write_failed', 'Nie udało się zapisać pliku tymczasowego.');
         }
         chmod($temporary, $permissions > 0 ? $permissions : 0644);
@@ -271,7 +276,9 @@ final class FileResource
             return $content;
         }
         $content = preg_replace(
-            '/(define\s*\(\s*[\'\"](?:DB_PASSWORD|AUTH_KEY|SECURE_AUTH_KEY|LOGGED_IN_KEY|NONCE_KEY|AUTH_SALT|SECURE_AUTH_SALT|LOGGED_IN_SALT|NONCE_SALT)[\'\"]\s*,\s*)[\'\"][^\'\"]*[\'\"](\s*\))/i',
+            // Każda stała z PASS, SECRET, KEY, SALT albo TOKEN w nazwie (np. WPMS_SMTP_PASS, WP_REDIS_PASSWORD),
+            // także gdy wartość zawiera cudzysłów poprzedzony ukośnikiem.
+            '/(define\s*\(\s*[\'\"][A-Z0-9_]*(?:PASS|SECRET|KEY|SALT|TOKEN)[A-Z0-9_]*[\'\"]\s*,\s*)(?:\'(?:[^\'\\\\]|\\\\.)*\'|"(?:[^"\\\\]|\\\\.)*")(\s*\))/i',
             '$1\'[REDACTED]\'$2',
             $content
         );

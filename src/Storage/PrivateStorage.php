@@ -84,6 +84,40 @@ final class PrivateStorage
         return $resolved;
     }
 
+    /** @return array<string,int> Katalogi kopii (operacje i wgrane pliki) z czasem ostatniej zmiany. */
+    public function directories(): array
+    {
+        $items = array();
+        foreach ((array) scandir($this->root) as $name) {
+            $name = (string) $name;
+            $path = $this->root . DIRECTORY_SEPARATOR . $name;
+            if ($name !== '.' && $name !== '..' && preg_match('/^[A-Za-z0-9._-]+$/', $name) && is_dir($path) && ! is_link($path)) {
+                $items[$name] = (int) filemtime($path);
+            }
+        }
+        return $items;
+    }
+
+    /** Usuwa katalog kopii jednej operacji. Dowiązań nie śledzi, więc nie wyjdzie poza magazyn. */
+    public function remove(string $name): void
+    {
+        if (! preg_match('/^[A-Za-z0-9._-]+$/', $name) || $name === '.' || $name === '..') {
+            throw new \InvalidArgumentException('Nieprawidłowy katalog kopii.');
+        }
+        $path = $this->root . DIRECTORY_SEPARATOR . $name;
+        if (! is_dir($path) || is_link($path)) {
+            return;
+        }
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($items as $item) {
+            $item->isDir() && ! $item->isLink() ? rmdir($item->getPathname()) : unlink($item->getPathname());
+        }
+        rmdir($path);
+    }
+
     private function validateRelative(string $operationId, string $relativeName): string
     {
         if (! preg_match('/^[A-Za-z0-9._-]+$/', $operationId)) {

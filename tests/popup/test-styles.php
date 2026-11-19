@@ -9,6 +9,7 @@ function sanitize_text_field($v) { return trim(strip_tags((string) $v)); }
 function wp_kses_post($v) { return (string) $v; }
 function esc_url_raw($v, $p = null) { return (string) $v; }
 function current_user_can($c) { return false; }
+function has_action($hook) { return false; }
 require __DIR__ . '/../../src/Popup/Popup.php';
 use ASM\Popup\Popup;
 

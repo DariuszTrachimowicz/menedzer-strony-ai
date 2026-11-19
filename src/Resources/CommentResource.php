@@ -104,7 +104,7 @@ final class CommentResource
         }
         foreach ((array) ($snapshot['meta'] ?? array()) as $key => $values) {
             foreach ((array) $values as $value) {
-                add_comment_meta($commentId, (string) $key, maybe_unserialize($value));
+                add_comment_meta($commentId, (string) $key, wp_slash(maybe_unserialize($value)));
             }
         }
         clean_comment_cache($commentId);

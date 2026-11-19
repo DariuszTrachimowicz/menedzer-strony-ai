@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.8.0, 19 listopada 2026
+
+Poprawki z audytu kodu (ponytail-audit, 19.11.2026):
+- CapabilityMap: content.read wymaga manage_options + asm_full_control (było read: subskrybent/klient Woo mógł pobrać przez /asm/v2/resources/posts szkice, prywatne i chronione hasłem).
+- wp_slash() przy add_*_meta/update_post_meta w rollback i content.meta, media alt (Content, Media, Menu, Comment, User): add_metadata robi wp_unslash i niszczył _elementor_data.
+- FileResource::verify(delete): resolve(..., true), więc brak pliku daje asm_path_not_found (wcześniej każdy file.delete kończył się asm_verification_failed).
+- uninstall.php: usuwa asm_mcp_install_id (nowe wiązanie unieważnia tokeny), odwołuje połączenia, kasuje poświadczenia OAuth, zdejmuje asm_full_control z każdego konta.
+- OAuthGrant: ponowienie refresh w ciągu 30 s bez zrywania połączenia; drugie użycie kodu autoryzacji zrywa połączenie (RFC 6749 4.1.2).
+- OAuthClients: nieużyte rejestracje DCR usuwane po dobie; przy pełnym limicie usuwana najstarsza nieużyta (starsza niż godzina).
+- OperationEngine: po założeniu blokady ponowny odczyt operacji (drugie wykonanie nie nadpisuje wyniku); przy nieudanej blokadzie zapis tylko na nietkniętym podglądzie; rollback niechronionych operacji pod blokadą i zakaz cofania operacji zatrzymanych przed zmianą (asm_resource_locked, asm_idempotency_conflict); blokada 900 s dla plugin./theme./core.
+- OptionResource: rollback przywraca surową kolumnę autoload (WP 6.6+ on/off/auto); option.update odrzuca wartość z [REDACTED] (asm_option_redacted_value).
+- QueryPolicy: analiza zapytania w jednym przejściu od lewej (teksty zasłonięte, `identyfikatory` odsłonięte, tryby NO_BACKSLASH_ESCAPES i ANSI_QUOTES), komentarz poza tekstem i identyfikator z nietypowymi znakami odrzucane; inna baza wykrywana po FROM, JOIN (z grupami w nawiasach), UPDATE z modyfikatorami i w listach tabel. Świadomy skrót: kontrola składniowa, nie parser; granicą jest pełny dostęp.
+- Retention (nowy): w asm_mcp_cleanup usuwa zakończone operacje starsze niż 30 dni z kluczami, krokami i kopiami (także „-after”) oraz osierocone katalogi magazynu starsze niż doba. PrivateStorage::directories(), remove().
+- UserResource: odmowa roli z manage_options (także przez default_role) i nieistniejącej roli (asm_user_invalid_role) oraz zmiany hasła, e-maila, loginu, roli i usunięcia konta administratora (asm_user_privileged); tryb password przyjmuje tylko user_pass, update nie przyjmuje user_pass. Rollback konta chronionego (administrator teraz albo w kopii, także przez indywidualne manage_options) nie przywraca hasła, e-maila, loginu, uprawnień, sesji ani haseł aplikacji, nie odtwarza usuniętego administratora; ochrona zapisana w kopii (pole protected); cofnięcie user.create nie usuwa konta awansowanego na administratora ani konta z treścią; własne verifyRollback.
+- SecretDetector::publicValue rekurencyjnie po kluczach; podgląd option.* w REST ukrywa snapshot.value.
+- Popup: autoload true (migracja w Installer), czyszczenie cache stron (LiteSpeed, W3TC, WP Super Cache) przy każdym zapisie, wp_kses_post przy wyświetlaniu, limity tytułu 200 i treści 20000 znaków; popup.js: dismiss_days 0 zapamiętuje zamknięcie w sessionStorage.
+- FileResource: ukrywanie każdej stałej define z PASS/SECRET/KEY/SALT/TOKEN; usuwanie niepełnego pliku tymczasowego. MediaResource: błąd wp_update_post przy media.replace zgłaszany. DirectorySnapshot::restore przez katalog tymczasowy i zamianę nazw. RemoteFetcher: przypięcie sprawdzonych IP (CURLOPT_RESOLVE).
+- build.py pakuje tylko pliki z git ls-files. Usunięte nieużywane assets/popup.css i popup-v2.css, powielone AdminPage::humanDate.
+- tests/integration/data-safety.php: 44 sprawdzeń na prawdziwym WordPressie.
+
 ## 2.7.3, 19 listopada 2026
 
 - ComponentResource::applyPlugin(update): Plugin_Upgrader::bulk_upgrade() zamiast upgrade() (upgrade() wyłączał aktywną wtyczkę i jej nie włączał; 18.11 Social Meta na rs2.pl była wyłączona ok. 6 minut). Zapamiętanie stanu aktywnego (także sieciowego) i ponowne activate_plugin() w razie potrzeby, błąd asm_plugin_reactivation_failed.

@@ -170,6 +170,10 @@ final class ApiController
         $data = $operation->toArray();
         $data['change'] = AuditStore::redact($data['change']);
         $data['snapshot'] = AuditStore::redact($data['snapshot']);
+        // Kopia opcji ma wartość pod kluczem „value”: ukrywamy ją według nazwy opcji, jak przy odczycie.
+        if (strpos((string) $operation->action(), 'option.') === 0 && is_array($data['snapshot']) && array_key_exists('value', $data['snapshot'])) {
+            $data['snapshot']['value'] = \ASM\Resources\SecretDetector::publicValue((string) ($operation->target()['id'] ?? ''), $data['snapshot']['value']);
+        }
         return $this->response($data, $operation->id());
     }
 

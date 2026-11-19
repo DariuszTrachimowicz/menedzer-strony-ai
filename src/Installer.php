@@ -88,6 +88,10 @@ final class Installer
             $role->remove_cap('asm_full_control');
         }
 
+        // Do 2.7.3 popup był zapisywany bez autoload, co dawało zapytanie przy każdym wejściu na stronę.
+        if (function_exists('wp_set_option_autoload') && get_option('asm_popup', null) !== null) {
+            wp_set_option_autoload('asm_popup', true);
+        }
         if (function_exists('update_option')) {
             update_option('asm_schema_version', ASM_VERSION, false);
         }

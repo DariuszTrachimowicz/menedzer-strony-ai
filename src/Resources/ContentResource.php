@@ -104,7 +104,7 @@ final class ContentResource
             if (! empty($change['delete'])) {
                 delete_post_meta($postId, $key);
             } else {
-                update_post_meta($postId, $key, $change['value'] ?? null);
+                update_post_meta($postId, $key, wp_slash($change['value'] ?? null));
             }
             return;
         }
@@ -199,7 +199,7 @@ final class ContentResource
         }
         foreach ((array) $snapshot['meta'] as $key => $values) {
             foreach ((array) $values as $value) {
-                add_post_meta($postId, (string) $key, maybe_unserialize($value));
+                add_post_meta($postId, (string) $key, wp_slash(maybe_unserialize($value)));
             }
         }
         foreach ((array) $snapshot['terms'] as $taxonomy => $termIds) {
@@ -222,7 +222,7 @@ final class ContentResource
             if ($restoredComment) {
                 foreach ((array) ($commentSnapshot['meta'] ?? array()) as $key => $values) {
                     foreach ((array) $values as $value) {
-                        add_comment_meta($commentId, (string) $key, maybe_unserialize($value));
+                        add_comment_meta($commentId, (string) $key, wp_slash(maybe_unserialize($value)));
                     }
                 }
             }

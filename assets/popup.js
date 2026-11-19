@@ -17,8 +17,10 @@
   function dismissed() {
     if (config.preview) return false;
     try {
+      // 0 dni = „przy każdej wizycie”: zamknięcie pamiętamy do końca wizyty (karty), nie między podstronami.
+      if (days === 0) return window.sessionStorage.getItem(key) === '1';
       var until = Number(window.localStorage.getItem(key) || 0);
-      return days > 0 && until > Date.now();
+      return until > Date.now();
     } catch (error) {
       return false;
     }
@@ -151,7 +153,10 @@
     dialog.hidden = true;
     document.documentElement.classList.remove('asm-popup-open');
     try {
-      if (days > 0 && !config.preview) window.localStorage.setItem(key, String(Date.now() + days * 86400000));
+      if (!config.preview) {
+        if (days > 0) window.localStorage.setItem(key, String(Date.now() + days * 86400000));
+        else window.sessionStorage.setItem(key, '1');
+      }
     } catch (error) {}
     if (previousFocus && typeof previousFocus.focus === 'function') previousFocus.focus();
   }

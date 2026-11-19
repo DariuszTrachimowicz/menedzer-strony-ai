@@ -10,7 +10,8 @@ final class CapabilityMap
         'site.read' => array('read'),
         'inventory.read' => array('manage_options', 'asm_full_control'),
         'search.read' => array('manage_options', 'asm_full_control'),
-        'content.read' => array('read'),
+        // Lista obejmuje szkice i wpisy prywatne z treścią: sama rola „read” (np. klient sklepu) nie wystarcza.
+        'content.read' => array('manage_options', 'asm_full_control'),
         'content.write' => array('edit_posts'),
         'content.publish' => array('publish_posts'),
         'content.delete' => array('delete_posts'),

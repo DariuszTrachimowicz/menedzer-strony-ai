@@ -76,7 +76,8 @@ final class OAuthClients {
         try {
             $count=$wpdb->get_var('SELECT COUNT(*) FROM '.self::table());
             if ($wpdb->last_error || $count===null) { return self::error('server_error',503); }
-            if ((int)$count>=self::MAX_CLIENTS) { return self::error('temporarily_unavailable',429); }
+            // Pełny limit: robimy miejsce kosztem najstarszej nigdy nieużytej rejestracji (starszej niż godzina).
+            if ((int)$count>=self::MAX_CLIENTS && !self::evictUnused(time()-3600,1)) { return self::error('temporarily_unavailable',429); }
             $id='asm_'.bin2hex(random_bytes(24));
             if ($wpdb->insert(self::table(),['client_id'=>$id,'metadata'=>wp_json_encode($validated),'created_at'=>time()])!==1) { return self::error('server_error',503); }
             unset($validated['verified']);
@@ -138,11 +139,22 @@ final class OAuthClients {
         set_transient($cacheKey,$validated,3600);
         return $validated;
     }
+    /** Usuwa rejestracje bez żadnego użycia i bez poświadczeń, starsze niż $before. $limit 0 = wszystkie. */
+    private static function evictUnused(int $before,int $limit): bool {
+        global $wpdb;
+        $clients=self::table(); $credentials=Connections::table('oauth_credentials');
+        $sql=$wpdb->prepare("DELETE FROM $clients WHERE (last_used IS NULL OR last_used=0) AND created_at<%d AND NOT EXISTS (SELECT 1 FROM $credentials t WHERE t.client_id=$clients.client_id) ORDER BY created_at",$before).($limit>0?' LIMIT '.(int)$limit:'');
+        $deleted=$wpdb->query($sql);
+        if ($deleted===false) { error_log('ASM MCP: usuwanie nieużytych rejestracji OAuth nie powiodło się.'); return false; }
+        return $deleted>0;
+    }
     public static function cleanup(): void {
         global $wpdb;
         $clients=self::table(); $credentials=Connections::table('oauth_credentials'); $connections=Connections::table('connections');
         $ok=$wpdb->query($wpdb->prepare("DELETE c FROM $clients c WHERE GREATEST(c.last_used,c.created_at)<%d AND NOT EXISTS (SELECT 1 FROM $credentials t JOIN $connections g ON g.id=t.connection_id WHERE t.client_id=c.client_id AND g.revoked=0 AND g.deleted_at=0 AND (g.expires_at=0 OR g.expires_at>%d))",time()-30*86400,time()));
         if ($ok===false) { error_log('ASM MCP: czyszczenie rejestracji OAuth nie powiodło się.'); }
+        // Rejestracja bez logowania nie wymaga uwierzytelnienia: nieużyte zgłoszenia znikają po dobie, nie po 30 dniach.
+        self::evictUnused(time()-86400,0);
         if ($wpdb->query($wpdb->prepare('DELETE FROM '.Connections::table('oauth_limits').' WHERE `window`<%d',time()-2*86400))===false) { error_log('ASM MCP: czyszczenie limitów OAuth nie powiodło się.'); }
     }
 }

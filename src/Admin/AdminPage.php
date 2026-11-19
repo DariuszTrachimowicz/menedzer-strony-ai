@@ -305,7 +305,7 @@ final class AdminPage
         echo '<ul>';
         if ($stats) {
             echo '<li>Twoje aktywne połączenia: <strong>' . (int) $stats['active'] . '</strong></li>';
-            echo '<li>Ostatnie użycie: <strong>' . esc_html((int) $stats['last_used'] ? self::humanDate((int) $stats['last_used']) : 'jeszcze nie użyto') . '</strong></li>';
+            echo '<li>Ostatnie użycie: <strong>' . esc_html((int) $stats['last_used'] ? \ASM\MCP\Admin::humanDate((int) $stats['last_used']) : 'jeszcze nie użyto') . '</strong></li>';
         }
         echo '<li>Popup: <strong>' . (! empty($popup['enabled']) && trim((string) $popup['message']) !== '' ? 'włączony' : 'wyłączony') . '</strong></li>';
         echo '<li>Wersja wtyczki: <strong>' . esc_html(ASM_VERSION) . '</strong></li></ul>';
@@ -539,18 +539,12 @@ final class AdminPage
                     ?><tr><td colspan="5">Brak zdarzeń.</td></tr><?php
                 endif; ?>
                 <?php foreach ($events as $event) : ?>
-                    <tr><td data-label="Kiedy"><?php echo esc_html(self::humanDate(strtotime($event['created_at'] . ' UTC'))); ?></td><td data-label="Operacja"><code><?php echo esc_html($event['operation_id']); ?></code></td><td data-label="Zdarzenie"><?php echo esc_html($event['event_name']); ?></td><td data-label="Operator"><?php echo (int) $event['actor_id']; ?></td><td data-label="Metadane"><code><?php echo esc_html(wp_json_encode($event['metadata'])); ?></code></td></tr>
+                    <tr><td data-label="Kiedy"><?php echo esc_html(\ASM\MCP\Admin::humanDate(strtotime($event['created_at'] . ' UTC'))); ?></td><td data-label="Operacja"><code><?php echo esc_html($event['operation_id']); ?></code></td><td data-label="Zdarzenie"><?php echo esc_html($event['event_name']); ?></td><td data-label="Operator"><?php echo (int) $event['actor_id']; ?></td><td data-label="Metadane"><code><?php echo esc_html(wp_json_encode($event['metadata'])); ?></code></td></tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>
         </section>
         <?php
-    }
-
-    private static function humanDate(int $timestamp): string
-    {
-        $months = array(1 => 'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia');
-        return wp_date('j', $timestamp) . ' ' . $months[(int) wp_date('n', $timestamp)] . ' ' . wp_date('Y H:i', $timestamp);
     }
 
     private function guard(): void

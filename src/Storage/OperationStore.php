@@ -48,6 +48,29 @@ final class OperationStore
         }
     }
 
+    /** Zapis tylko wtedy, gdy w bazie operacja ma nadal status $expected (porównanie i zapis w jednym zapytaniu). */
+    public function saveIfStatus(Operation $operation, string $expected): bool
+    {
+        $payload = json_encode(
+            $operation->toArray(),
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR | ($operation->guardedRollback() ? JSON_PRESERVE_ZERO_FRACTION : 0)
+        );
+        if ($this->cipher !== null) {
+            $payload = $this->cipher->encrypt($payload);
+        }
+        $result = $this->database->update(
+            $this->operationsTable,
+            array('status' => $operation->status(), 'payload' => $payload, 'updated_at' => gmdate('Y-m-d H:i:s')),
+            array('id' => $operation->id(), 'status' => $expected),
+            array('%s', '%s', '%s'),
+            array('%s', '%s')
+        );
+        if ($result === false) {
+            throw new \RuntimeException('Nie udało się zapisać operacji ASM.');
+        }
+        return $result === 1;
+    }
+
     public function get(string $operationId): ?Operation
     {
         $payload = $this->database->get_var(
