@@ -223,10 +223,31 @@ final class ComponentResource
             return;
         }
         $upgrader = new \Plugin_Upgrader(new \Automatic_Upgrader_Skin());
-        $result = $this->action === 'update'
-            ? $upgrader->upgrade($id)
-            : $upgrader->install($this->repositoryDownload('plugin', (string) ($change['slug'] ?? $id)));
-        $this->assertUpgrade($result, 'asm_plugin_upgrade_failed');
+        if ($this->action !== 'update') {
+            $result = $upgrader->install($this->repositoryDownload('plugin', (string) ($change['slug'] ?? $id)));
+            $this->assertUpgrade($result, 'asm_plugin_upgrade_failed');
+            return;
+        }
+        $network = is_multisite() && is_plugin_active_for_network($id);
+        $wasActive = $network || is_plugin_active($id);
+        // Pusta lista aktualizacji (np. po cache.purge) daje „brak aktualizacji”: odśwież ją przed aktualizacją.
+        if ($this->pluginUpdate($id) === null) {
+            wp_update_plugins();
+        }
+        if ($this->pluginUpdate($id) === null) {
+            throw new OperationFailure('asm_plugin_no_update', 'WordPress nie widzi nowszej wersji tej wtyczki.');
+        }
+        // bulk_upgrade, jak WP-CLI i ekran Aktualizacje: upgrade() wyłącza aktywną wtyczkę i jej nie włącza.
+        $results = $upgrader->bulk_upgrade(array($id));
+        $result = is_array($results) ? ($results[$id] ?? false) : $results;
+        // Sukces bulk_upgrade to tablica z danymi instalacji, nie true.
+        $this->assertUpgrade(is_array($result) ? true : $result, 'asm_plugin_upgrade_failed');
+        if ($wasActive && ! is_plugin_active($id)) {
+            $activated = activate_plugin($id, '', $network, true);
+            if (is_wp_error($activated)) {
+                throw new OperationFailure('asm_plugin_reactivation_failed', 'Wtyczka zaktualizowana, ale nie udało się jej ponownie włączyć: ' . $activated->get_error_message());
+            }
+        }
     }
 
     private function applyTheme(string $id, array $change): void

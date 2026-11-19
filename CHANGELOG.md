@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.7.3, 19 listopada 2026
+
+- ComponentResource::applyPlugin(update): Plugin_Upgrader::bulk_upgrade() zamiast upgrade() (upgrade() wyłączał aktywną wtyczkę i jej nie włączał; 18.11 Social Meta na rs2.pl była wyłączona ok. 6 minut). Zapamiętanie stanu aktywnego (także sieciowego) i ponowne activate_plugin() w razie potrzeby, błąd asm_plugin_reactivation_failed.
+- Gdy w update_plugins brakuje wtyczki (np. po cache.purge), wp_update_plugins() przed aktualizacją; bez nowszej wersji błąd asm_plugin_no_update zamiast fałszywego sukcesu. Wcześniej samoaktualizacja ASM kończyła się asm_plugin_upgrade_failed.
+- Sukces bulk_upgrade to tablica z danymi instalacji: traktowana jako powodzenie.
+- tests/integration/plugin-update-keeps-active.php: test w prawdziwym WordPressie.
+
 ## 2.7.2, 19 listopada 2026
 
 - Updater::info() i readme: tested 7.2 zamiast 7.1.4 (testy na 7.1.5 i 7.2-RC2). install_plugin_information() w 7.1.5 porównuje pełną wersję: version_compare(get_bloginfo('version'), tested, '<='), więc 7.1.4 dawało ostrzeżenie o braku testów.
