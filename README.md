@@ -1,4 +1,4 @@
-# Menedżer Strony AI 2.8.0
+# Menedżer Strony AI 2.9.0
 
 Wtyczka udostępnia kontrolowane API do odczytu i zarządzania instalacją WordPressa. Każda zmiana przechodzi przez cztery etapy: preview, execute, verify i opcjonalny rollback.
 
@@ -53,9 +53,9 @@ Discovery wymaga przekazania dokładnych ścieżek /.well-known do WordPressa. N
 
 Nie przekazuj głównego hasła do konta. Hasło aplikacji można niezależnie unieważnić.
 
-## Domyślny popup
+## Popup i pasek
 
-Nowa instalacja ma neutralny popup wyłączony (`enabled=false`) i nie zawiera treści Inpuris. Włączenie popupu oraz jego treść wymagają osobnej konfiguracji. Aktualizacja istniejącej instalacji zachowuje opcję `asm_popup` bez zmian.
+Od 2.9.0 popup i pasek informacyjny są w osobnej wtyczce Digital Xperts Popup (https://github.com/DariuszTrachimowicz/digital-xperts-popup), która korzysta z tej samej opcji `asm_popup`. Zasób `popup` ma dwie części: `main` (popup) i `bar` (pasek); bez wtyczki Popup odczyt i `popup.update` zwracają `asm_popup_plugin_missing`. `plugin.install` ze slugiem `digital-xperts-popup` pobiera paczkę z jej najnowszego wydania.
 
 ## Schemat operacji
 

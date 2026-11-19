@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.9.0, 19 listopada 2026
+
+- Popup wydzielony do wtyczki Digital Xperts Popup (osobne repozytorium): usunięte src/Popup, assets/popup*, zakładka Popup, wiersz w widżecie kokpitu, przełącznik w mcp-admin.js, style wyboru stylu w mcp-admin.css, migracja autoload asm_popup w Installer, tests/popup (przeniesiony).
+- PopupResource deleguje do DigitalXperts\Popup\Popup (id main) i DigitalXperts\Popup\Bar (id bar); bez wtyczki asm_popup_plugin_missing, nieznana część asm_resource_not_found.
+- ComponentResource::repositoryDownload: OWN_PLUGINS, plugin.install digital-xperts-popup z releases/latest/download/digital-xperts-popup.zip.
+- data-safety.php: sekcja 9 sprawdza zasób popupu z wtyczką Popup i bez niej oraz adres instalacji.
+
 ## 2.8.0, 19 listopada 2026
 
 Poprawki z audytu kodu (ponytail-audit, 19.11.2026):

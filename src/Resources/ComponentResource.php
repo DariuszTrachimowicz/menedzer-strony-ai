@@ -10,6 +10,7 @@ use ASM\Storage\PrivateStorage;
 
 final class ComponentResource
 {
+    private const OWN_PLUGINS = array('digital-xperts-popup' => 'DariuszTrachimowicz/digital-xperts-popup');
     private string $type;
     private string $action;
     private PrivateStorage $storage;
@@ -275,6 +276,10 @@ final class ComponentResource
         $slug = preg_replace('/[^a-z0-9-]/', '', strtolower($slug));
         if (! is_string($slug) || $slug === '') {
             throw new OperationFailure('asm_invalid_component_slug', 'Nieprawidłowy identyfikator repozytorium.');
+        }
+        // Nasze wtyczki spoza wordpress.org: stała paczka najnowszego wydania na GitHubie (robi ją build.py wtyczki).
+        if ($type === 'plugin' && isset(self::OWN_PLUGINS[$slug])) {
+            return 'https://github.com/' . self::OWN_PLUGINS[$slug] . '/releases/latest/download/' . $slug . '.zip';
         }
         $api = $type === 'plugin'
             ? plugins_api('plugin_information', array('slug' => $slug, 'fields' => array('sections' => false)))

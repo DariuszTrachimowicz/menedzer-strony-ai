@@ -42,7 +42,6 @@ use ASM\Storage\AuditStore;
 use ASM\Storage\DatabaseLockBackend;
 use ASM\Storage\OperationStore;
 use ASM\Storage\PrivateStorage;
-use ASM\Popup\Popup;
 use ASM\Storage\PayloadCipher;
 
 final class Plugin
@@ -131,7 +130,6 @@ final class Plugin
             \ASM\Storage\Retention::run($wpdb, $storage);
         });
         Migration::run();
-        (new Popup())->hooks();
         Updater::hooks();
         if (is_admin()) {
             (new AdminPage($audit, $storage !== null))->hooks();

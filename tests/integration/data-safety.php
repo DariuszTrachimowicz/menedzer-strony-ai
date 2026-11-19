@@ -152,11 +152,32 @@ $check(is_wp_error($policy->validateMutation("UPDATE IGNORE innabaza.wp_options 
 $check($policy->validateRead("SELECT {$wpdb->posts}.ID FROM {$wpdb->posts} JOIN {$wpdb->postmeta} ON {$wpdb->postmeta}.post_id = {$wpdb->posts}.ID LIMIT 1") === true, 'SQL: kolumny z nazwą tabeli dozwolone');
 $check($policy->validateMutation("UPDATE {$wpdb->options} SET option_value = 'x' WHERE option_name = 'asm_test_autoload'") === true, 'SQL: zwykły UPDATE dozwolony');
 
-// 9. Popup: opcja wczytywana przy starcie, limity długości.
-ASM\Popup\Popup::save(array('enabled' => false, 'title' => str_repeat('t', 500), 'message' => '<p>Treść</p>'));
-$popupAutoload = (string) $wpdb->get_var("SELECT autoload FROM {$wpdb->options} WHERE option_name = 'asm_popup'");
-$check(in_array($popupAutoload, array('on', 'yes', 'auto-on'), true), 'popup zapisany z autoload (' . $popupAutoload . ')');
-$check(mb_strlen(ASM\Popup\Popup::settings()['title']) === 200, 'tytuł popupu przycięty do 200 znaków');
+// 9. Popup i pasek są we wtyczce Digital Xperts Popup; konektor zmienia je tym samym zasobem (main i bar).
+$popupResource = new ASM\Resources\PopupResource();
+$unknownPart = $popupResource->get('okno');
+$check(is_wp_error($unknownPart) && $unknownPart->get_error_code() === 'asm_resource_not_found', 'zasób popupu: nieznana część odrzucona');
+if (class_exists('DigitalXperts\Popup\Bar')) {
+    $barBefore = $popupResource->snapshot(array('id' => 'bar'));
+    $popupResource->apply(array('id' => 'bar'), array('enabled' => true, 'message' => 'Darmowa dostawa'));
+    $check($popupResource->verify(array('id' => 'bar'), array('enabled' => true, 'message' => 'Darmowa dostawa')) === true, 'konektor zmienia pasek');
+    $popupResource->rollback(array('id' => 'bar'), $barBefore);
+    $check(DigitalXperts\Popup\Bar::settings() == $barBefore, 'cofnięcie przywraca pasek');
+    $popupResource->apply(array('id' => 'main'), array('title' => str_repeat('t', 500)));
+    $check(mb_strlen((string) $popupResource->get('main')['title']) === 200, 'konektor zmienia popup, tytuł przycięty do 200 znaków');
+    $check(count($popupResource->list()) === 2, 'lista zasobów popupu: popup i pasek');
+} else {
+    $missing = $popupResource->get('bar');
+    $check(is_wp_error($missing) && $missing->get_error_code() === 'asm_popup_plugin_missing', 'bez wtyczki Popup: jasny błąd');
+    try {
+        $popupResource->apply(array('id' => 'main'), array('enabled' => true));
+        $check(false, 'bez wtyczki Popup: zmiana odrzucona');
+    } catch (ASM\Operations\OperationFailure $failure) {
+        $check($failure->operationCode() === 'asm_popup_plugin_missing', 'bez wtyczki Popup: zmiana odrzucona');
+    }
+}
+$download = new ReflectionMethod(ASM\Resources\ComponentResource::class, 'repositoryDownload');
+$download->setAccessible(true);
+$check($download->invoke(new ASM\Resources\ComponentResource('plugin', 'install', $storage), 'plugin', 'digital-xperts-popup') === 'https://github.com/DariuszTrachimowicz/digital-xperts-popup/releases/latest/download/digital-xperts-popup.zip', 'instalacja wtyczki Popup z wydań GitHuba');
 
 // 10. Sprzątanie: stara operacja i jej kopia znikają, świeża zostaje, osierocony katalog po dobie znika.
 $oldId = wp_generate_uuid4();

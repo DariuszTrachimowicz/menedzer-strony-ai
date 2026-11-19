@@ -84,7 +84,7 @@ final class Admin {
         $issued=self::$creation; $error=null;
         self::$creation=null;
         if (is_wp_error($issued)) { $error=$issued->get_error_message(); $issued=null; }
-        $tabs=['start'=>'Start','connections'=>'Połączenia','permissions'=>'Uprawnienia','popup'=>'Popup','activity'=>'Historia','system'=>'System i aktualizacje','help'=>'Pomoc'];
+        $tabs=['start'=>'Start','connections'=>'Połączenia','permissions'=>'Uprawnienia','activity'=>'Historia','system'=>'System i aktualizacje','help'=>'Pomoc'];
         $tab=sanitize_key($_GET['tab']??'start'); if (!isset($tabs[$tab])) { $tab='start'; }
         echo '<div class="asm-mcp"><nav class="asm-tabs" aria-label="Sekcje wtyczki">';
         foreach ($tabs as $key=>$label) { echo '<a '.($key===$tab?'aria-current="page"':'').' href="'.esc_url(self::url($key)).'">'.esc_html($label).'</a>'; }
@@ -94,7 +94,6 @@ final class Admin {
         elseif ($tab==='start') { self::start(); }
         elseif ($tab==='connections') { self::connections(); }
         elseif ($tab==='permissions') { \ASM\Admin\AdminPage::section('operators'); self::permissions(); }
-        elseif ($tab==='popup') { \ASM\Admin\AdminPage::section('popup'); }
         elseif ($tab==='activity') { self::activity(); \ASM\Admin\AdminPage::section('audit'); }
         elseif ($tab==='system') { \ASM\Admin\AdminPage::section('system'); }
         else { self::helpPage(); }

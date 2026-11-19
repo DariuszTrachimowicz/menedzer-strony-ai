@@ -4,7 +4,7 @@ Tags: ai, mcp, oauth, administration
 Requires at least: 7.1
 Requires PHP: 8.2
 Tested up to: 7.2
-Stable tag: 2.8.0
+Stable tag: 2.9.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,7 +25,7 @@ Nie musisz już przeklejać tekstów między czatem a panelem WordPressa. Piszes
 * W zakładce Historia sprawdzasz, które połączenie co zrobiło i z jakim wynikiem. Wpisy są przechowywane przez 30 dni.
 * Każde połączenie odcinasz jednym przyciskiem. Możesz też cofnąć wszystkie naraz, na przykład po odtworzeniu strony z kopii.
 * Nie płacisz za dodatkowy klucz API. Asystent pracuje na Twoim koncie w aplikacji AI, a wtyczka nie wysyła telemetrii do autora.
-* Pokazujesz odwiedzającym popup, który bierze czcionki, kolory i wygląd przycisku z Twojej strony. Treść piszesz w edytorze, a wynik oglądasz w podglądzie przed włączeniem.
+* Asystent zmienia popup i pasek informacyjny z osobnej wtyczki Digital Xperts Popup i potrafi ją zainstalować.
 * Nowe wersje instalujesz ze zwykłego ekranu aktualizacji WordPressa.
 
 = Do czego się przydaje =
@@ -61,7 +61,7 @@ Opis produktu: https://d-x.pl/wtyczki/menedzer-strony-ai/
 == Installation ==
 
 1. Zrób kopię bazy danych i plików strony.
-2. W panelu WordPressa wybierz Wtyczki, Dodaj wtyczkę, Wyślij wtyczkę na serwer i wskaż plik `ai-site-manager-2.8.0.zip`. Przy aktualizacji wybierz zastąpienie obecnej wersji.
+2. W panelu WordPressa wybierz Wtyczki, Dodaj wtyczkę, Wyślij wtyczkę na serwer i wskaż plik `ai-site-manager-2.9.0.zip`. Przy aktualizacji wybierz zastąpienie obecnej wersji.
 3. W pliku `wp-config.php` ustaw stałą `ASM_PRIVATE_STORAGE` na katalog poza katalogiem publicznym. Przykład jest w pliku README.md.
 4. Otwórz Menedżer Strony AI w menu kokpitu, pod pozycją Kokpit. Nagłówek pokaże, czy HTTPS i magazyn kopii są gotowe.
 5. Skopiuj adres ze strony Start i dodaj połączenie w Claude. Zaloguj się do strony i zatwierdź wybrany zakres.
@@ -101,6 +101,13 @@ Audyt i zakończone operacje MCP są przechowywane przez 30 dni. Operacje w toku
 Wyniki narzędzi trafiają do aplikacji klienta i mogą być przetwarzane przez dostawcę modelu. Pobieranie dokumentów tożsamości jest ograniczone do dwóch oficjalnych adresów HTTPS Claude. Wtyczka nie wymaga kluczy dostawcy modelu i nie wysyła telemetrii do autora.
 
 == Changelog ==
+
+= 2.9.0, 19 listopada 2026 =
+
+* Popup przeniesiony do osobnej wtyczki Digital Xperts Popup, która ma też pasek informacyjny. Ustawienia, biblioteka i własny CSS popupu przechodzą bez zmian.
+* Asystent AI zmienia popup (`main`) i pasek (`bar`) tą samą operacją `popup.update`, gdy wtyczka Popup jest włączona. Bez niej dostaje jasny komunikat.
+* Asystent instaluje wtyczkę Popup z jej wydań na GitHubie operacją `plugin.install` ze slugiem `digital-xperts-popup`.
+* Menedżer ma mniej kodu: zakładka Popup, skrypty i style popupu zniknęły z panelu i ze stron.
 
 = 2.8.0, 19 listopada 2026 =
 
