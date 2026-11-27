@@ -158,6 +158,8 @@ final class OAuthClients {
         if (!$configured) { curl_close($curl); return self::error('temporarily_unavailable',503); }
         $ok=curl_exec($curl); $status=(int)curl_getinfo($curl,CURLINFO_RESPONSE_CODE); $type=curl_getinfo($curl,CURLINFO_CONTENT_TYPE); $peer=curl_getinfo($curl,CURLINFO_PRIMARY_IP); curl_close($curl);
         // Chwilowe: brak odpowiedzi, przeciążenie i 403 (zapora po stronie claude.ai blokuje adres hostingu; wycofany dokument to 404 albo 410).
+        // Odebrany status 404 albo 410 to wycofany dokument, także gdy połączenie zerwało się potem przy treści.
+        if ($status===404 || $status===410) { return self::error('invalid_client'); }
         // Zerwany transfer też jest chwilowy, nawet po nagłówku 200; przekroczony rozmiar nie.
         if (!$oversized && ($ok===false || in_array($status,[403,408,425,429],true) || $status>=500)) { error_log('ASM MCP: dokument klienta Claude chwilowo niedostępny (HTTP '.$status.').'); return self::error('temporarily_unavailable',503); }
         if ($ok===false || $oversized || $status!==200 || !is_string($type) || !preg_match('~^application/(?:[a-z0-9.+-]+\+)?json(?:\s*;|$)~i',$type) || !in_array($peer,$addresses,true)) { return self::error('invalid_client'); }

@@ -64,6 +64,8 @@ namespace {
         'błędny client_id'=>['fail'=>false,'status'=>200,'body'=>json_encode(['client_id'=>'https://example.test/inny'])],
         '404'=>['fail'=>false,'status'=>404,'body'=>''],
         '410'=>['fail'=>false,'status'=>410,'body'=>''],
+        '410 z zerwanym transferem'=>['fail'=>true,'status'=>410,'body'=>''],
+        '404 z zerwanym transferem'=>['fail'=>true,'status'=>404,'body'=>''],
         'przekierowanie'=>['fail'=>false,'status'=>302,'body'=>''],
         'zły typ treści'=>$ok+['type'=>'text/html'],
         'adres spoza listy'=>$ok+['peer'=>'203.0.113.9'],

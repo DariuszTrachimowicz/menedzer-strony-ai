@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.9.2, 27 listopada 2026
+
+- OAuthClients::downloadCIMD: odebrany status 404 albo 410 jest rozstrzygany przed obsługą błędu transferu (`curl_exec` false po nagłówkach), więc daje `invalid_client` i usuwa kopię oraz pamięć godzinną. Test: przypadki „410 z zerwanym transferem” i „404 z zerwanym transferem”.
+
 ## 2.9.1, 27 listopada 2026
 
 - OAuthClients::downloadCIMD (dawne fetchCIMD): chwilowy błąd pobrania dokumentu klienta Claude (brak DNS, brak odpowiedzi, HTTP 403, 408, 425, 429, 5xx) zwraca `temporarily_unavailable` 503 zamiast `invalid_client`. Pozostałe wyniki (404, 410, przekierowanie, zły typ treści, za duża odpowiedź, adres spoza listy, błędna treść, prywatny adres w DNS) nadal odrzucają klienta.
