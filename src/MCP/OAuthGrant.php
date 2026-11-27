@@ -7,6 +7,8 @@ final class OAuthGrant {
     public const CODE_TTL=120;
     public const ACCESS_TTL=3600;
     private const REFRESH_RETRY_GRACE=30;
+    // Powód odmowy odświeżenia ustalany w gałęzi, która odrzuca żądanie; do audytu trafia w locked().
+    private static ?string $denial=null;
     public static function table(): string { return Connections::table('oauth_credentials'); }
     public static function install(): void {
         global $wpdb;
@@ -59,14 +61,14 @@ final class OAuthGrant {
         if (!$initial) { return OAuthClients::error('invalid_grant'); }
         $lock=Connections::lockName($initial['connection_id']);
         if ((string)$wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s,3)',$lock))!=='1') { return OAuthClients::error('temporarily_unavailable',503); }
-        $committed=false;
+        $committed=false; $connection=null; $record=null; self::$denial=null;
         try {
             if ($wpdb->query('START TRANSACTION')===false) { return OAuthClients::error('server_error',503); }
             Connections::$authTransaction=true;
             // Porządek blokad odpowiada operacjom i usunięciu połączenia.
             $connection=Connections::fresh($initial['connection_id']);
             if ($wpdb->last_error) { return OAuthClients::error('server_error',503); }
-            if (!$connection || ($requireAuthorization && !self::authorized($connection))) { return OAuthClients::error('invalid_grant'); }
+            if (!$connection || ($requireAuthorization && !self::authorized($connection))) { if ($connection) { $record='authorization'; } return OAuthClients::error('invalid_grant'); }
             $credential=$wpdb->get_row($wpdb->prepare('SELECT * FROM '.self::table().' WHERE hash=%s AND kind=%s FOR UPDATE',hash('sha256',$secret),$kind),ARRAY_A);
             if ($wpdb->last_error) { return OAuthClients::error('server_error',503); }
             if (!$credential) { return OAuthClients::error('invalid_grant'); }
@@ -74,11 +76,20 @@ final class OAuthGrant {
             // Replay odwołuje rodzinę także wtedy, gdy odpowiedź zawiera invalid_grant.
             if ($wpdb->query('COMMIT')===false) { return OAuthClients::error('server_error',503); }
             $committed=true;
+            // Do audytu trafia tylko odmowa, którą klient faktycznie dostał (nie błąd bazy ani nieudany COMMIT).
+            if (is_wp_error($reply) && $reply->get_error_code()==='invalid_grant') { $record=self::$denial; }
             return $reply;
         } finally {
             if (!$committed && $wpdb->query('ROLLBACK')===false) { error_log('ASM MCP: cofnięcie transakcji OAuth nie powiodło się.'); }
             Connections::$authTransaction=false;
-            $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)',$lock));
+            // Po transakcji (odmowa ją wycofuje), ale jeszcze pod blokadą połączenia: równoległe odmowy nie dublują wpisu.
+            try {
+                if ($kind==='refresh' && $record!==null && $connection) { self::recordDenial($connection,$record==='authorization'?(Connections::denial($connection)?:'denied_unknown'):$record); }
+            } catch (\Throwable $failure) {
+                error_log('ASM MCP: zapis powodu odmowy odświeżenia nie powiódł się.');
+            } finally {
+                $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)',$lock));
+            }
             if ($wpdb->last_error) { error_log('ASM MCP: zwolnienie blokady OAuth nie powiodło się.'); }
         }
     }
@@ -98,7 +109,10 @@ final class OAuthGrant {
                 return OAuthClients::error('invalid_grant');
             }
             if ((int)$credential['expires_at']<=time() || !hash_equals($credential['client_id'],$request['client_id']) || !hash_equals($credential['redirect_uri'],$request['redirect_uri']) || !hash_equals($credential['resource'],$request['resource']) || !self::verifyPKCE($request['code_verifier'],$credential['challenge']) || $credential['scope']!==$connection['scope']) { return OAuthClients::error('invalid_grant'); }
-            if ($wpdb->update(self::table(),['consumed_at'=>time()],['hash'=>$credential['hash'],'consumed_at'=>0])!==1) { return OAuthClients::error('invalid_grant'); }
+            $used=$wpdb->update(self::table(),['consumed_at'=>time()],['hash'=>$credential['hash'],'consumed_at'=>0]);
+            // Błąd bazy to nie ponowne użycie: klient dostaje 503 i ponawia, zamiast tracić połączenie.
+            if ($used===false) { throw new \RuntimeException('oauth_storage'); }
+            if ($used!==1) { self::$denial='denied_replay'; return OAuthClients::error('invalid_grant'); }
             $reply=self::tokens($credential,$connection);
             if (is_wp_error($reply)) { throw new \RuntimeException('oauth_storage'); }
             return $reply;
@@ -107,26 +121,37 @@ final class OAuthGrant {
     public static function refresh(array $request) {
         return self::locked($request['refresh_token'],'refresh',static function(array $credential,array $connection) use ($request) {
             global $wpdb;
-            if (!hash_equals($credential['client_id'],$request['client_id']) || !hash_equals($credential['resource'],$request['resource']) || $credential['scope']!==$connection['scope'] || (isset($request['scope']) && $request['scope']!==$credential['scope'])) { return OAuthClients::error('invalid_grant'); }
+            if (!hash_equals($credential['client_id'],$request['client_id']) || !hash_equals($credential['resource'],$request['resource']) || $credential['scope']!==$connection['scope'] || (isset($request['scope']) && $request['scope']!==$credential['scope'])) { self::$denial='denied_request'; return OAuthClients::error('invalid_grant'); }
             if ((int)$credential['consumed_at']) {
                 // Ponowienie tuż po wymianie (zgubiona odpowiedź, dwa procesy naraz) nie jest kradzieżą: klient dostaje
                 // nową parę tokenów, bo poprzedniej mógł nie otrzymać. Po oknie ponowienia zużyty token zrywa połączenie.
                 if ((int)$credential['consumed_at']>time()-self::REFRESH_RETRY_GRACE) {
-                    if ((int)$credential['expires_at']!==0 && (int)$credential['expires_at']<=time()) { return OAuthClients::error('invalid_grant'); }
+                    if ((int)$credential['expires_at']!==0 && (int)$credential['expires_at']<=time()) { self::$denial='denied_expired'; return OAuthClients::error('invalid_grant'); }
                     if (!Connections::audit($connection,'oauth.refresh_retry','issued')) { throw new \RuntimeException('oauth_storage'); }
                     $reply=self::tokens($credential,$connection);
                     if (is_wp_error($reply)) { throw new \RuntimeException('oauth_storage'); }
                     return $reply;
                 }
                 if ($wpdb->update(Connections::table('connections'),['revoked'=>1,'revoked_at'=>time()],['id'=>$connection['id']])===false || !Connections::audit($connection,'oauth.refresh_replay','revoked')) { throw new \RuntimeException('oauth_storage'); }
+                self::$denial='denied_replay';
                 return OAuthClients::error('invalid_grant');
             }
-            if ((int)$credential['expires_at']!==0 && (int)$credential['expires_at']<=time()) { return OAuthClients::error('invalid_grant'); }
-            if ($wpdb->update(self::table(),['consumed_at'=>time()],['hash'=>$credential['hash'],'consumed_at'=>0])!==1) { return OAuthClients::error('invalid_grant'); }
+            if ((int)$credential['expires_at']!==0 && (int)$credential['expires_at']<=time()) { self::$denial='denied_expired'; return OAuthClients::error('invalid_grant'); }
+            $used=$wpdb->update(self::table(),['consumed_at'=>time()],['hash'=>$credential['hash'],'consumed_at'=>0]);
+            // Błąd bazy to nie ponowne użycie: klient dostaje 503 i ponawia, zamiast tracić połączenie.
+            if ($used===false) { throw new \RuntimeException('oauth_storage'); }
+            if ($used!==1) { self::$denial='denied_replay'; return OAuthClients::error('invalid_grant'); }
             $reply=self::tokens($credential,$connection);
             if (is_wp_error($reply)) { throw new \RuntimeException('oauth_storage'); }
             return $reply;
         });
+    }
+    // Najwyżej jeden wpis odmowy na godzinę na połączenie; nieznany token nie zostawia śladu.
+    private static function recordDenial(array $connection,string $reason): void {
+        global $wpdb;
+        $recent=$wpdb->get_var($wpdb->prepare('SELECT COUNT(*) FROM '.Connections::table('audit').' WHERE connection_id=%s AND event=%s AND created_at>%d',$connection['id'],'oauth.refresh_denied',time()-3600));
+        if ($wpdb->last_error || (int)$recent>0) { return; }
+        if (!Connections::audit($connection,'oauth.refresh_denied',$reason)) { error_log('ASM MCP: nie zapisano powodu odmowy odświeżenia ('.$reason.').'); }
     }
     public static function authenticate(string $header,bool $rate=false) {
         if (!preg_match('/^Bearer (oa\.[a-f0-9]{64})$/D',$header,$match)) { return Policy::error('auth',401); }

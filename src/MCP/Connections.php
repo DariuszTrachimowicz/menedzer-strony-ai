@@ -93,6 +93,19 @@ final class Connections {
         $allowed=user_can((int)$c['owner_id'],'manage_options') && ($c['scope']!=='full' || user_can((int)$c['owner_id'],'asm_full_control'));
         return $allowed && ((int)$c['expires_at']===0 || time()<(int)$c['expires_at']);
     }
+    /** Powód do dziennika, dla którego połączenie nie przechodzi kontroli z valid() i OAuthGrant::authorized(); pusty tekst, gdy przechodzi. */
+    public static function denial(array $c): string {
+        // Usunięcie ustawia też revoked, więc sprawdzamy je pierwsze.
+        if ((int)($c['deleted_at']??0)) { return 'denied_deleted'; }
+        if ((int)$c['revoked']) { return 'denied_revoked'; }
+        if ((int)$c['expires_at']!==0 && time()>=(int)$c['expires_at']) { return 'denied_expired'; }
+        if (!isset(Policy::SCOPES[$c['scope']])) { return 'denied_scope'; }
+        if (!hash_equals($c['binding'],self::binding())) { return 'denied_binding'; }
+        clean_user_cache((int)$c['owner_id']);
+        wp_roles()->for_site();
+        if (!user_can((int)$c['owner_id'],'manage_options') || ($c['scope']!=='publicread' && !user_can((int)$c['owner_id'],'asm_full_control'))) { return 'denied_role'; }
+        return '';
+    }
     private static function currentAuthorization(array $c): bool {
         global $wpdb;
         if ((int)$c['revoked'] || (int)($c['deleted_at']??0) || ((int)$c['expires_at']!==0 && time()>=(int)$c['expires_at']) || !isset(Policy::SCOPES[$c['scope']])) { return false; }

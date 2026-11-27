@@ -84,9 +84,10 @@ final class OAuthClients {
             return array_merge($validated,['client_id'=>$id,'client_id_issued_at'=>time()]);
         } finally { $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)',$lock)); if ($wpdb->last_error) { error_log('ASM MCP: nie można zwolnić blokady rejestracji OAuth.'); } }
     }
-    public static function resolve(string $id) {
+    /** $existing: żądanie dotyczy już wydanego dostępu (wymiana kodu, odświeżenie, cofnięcie), nie nowej zgody. */
+    public static function resolve(string $id,bool $existing=false) {
         global $wpdb;
-        if (in_array($id,self::CIMD,true)) { return self::fetchCIMD($id); }
+        if (in_array($id,self::CIMD,true)) { return self::fetchCIMD($id,$existing); }
         if (!preg_match('/^asm_[a-f0-9]{48}$/D',$id)) { return self::error('invalid_client'); }
         $row=$wpdb->get_row($wpdb->prepare('SELECT metadata FROM '.self::table().' WHERE client_id=%s',$id),ARRAY_A);
         if ($wpdb->last_error) { return self::error('server_error',503); }
@@ -107,14 +108,41 @@ final class OAuthClients {
     public static function publicIP(string $ip): bool {
         return filter_var($ip,FILTER_VALIDATE_IP,FILTER_FLAG_GLOBAL_RANGE)!==false && !str_starts_with(strtolower($ip),'::ffff:');
     }
-    private static function fetchCIMD(string $id) {
+    // Chwilowy brak dostępu do claude.ai nie zrywa wydanych połączeń: ostatni poprawny dokument służy im do 30 dni.
+    // Nowa zgoda (ekran logowania) zawsze wymaga świeżego dokumentu, bo to on wskazuje adres powrotu.
+    private static function fetchCIMD(string $id,bool $existing) {
+        $fresh=self::downloadCIMD($id);
+        // Osobna opcja na dokument: zapis kopii jednego klienta nie przywraca usuniętej kopii drugiego.
+        $hash=hash('sha256',$id.'|'.implode(' ',array_keys(Policy::SCOPES)));
+        $option='asm_mcp_cimd_ok_'.substr($hash,0,32);
+        $last=get_option($option,null);
+        $at=is_array($last)?(int)($last['at']??0):0;
+        if (!is_wp_error($fresh)) {
+            if ($at<time()-3600 || $at>time() || ($last['doc']??null)!==$fresh) { update_option($option,['at'=>time(),'doc'=>$fresh],false); }
+            return $fresh;
+        }
+        if ($fresh->get_error_code()!=='temporarily_unavailable') {
+            // Dokument odrzucony albo wycofany: kopia przestaje służyć do następnego poprawnego pobrania.
+            // Razem z pamięcią godzinną: równoległe żądanie mogło ją zapisać tuż przed odrzuceniem.
+            if ($last!==null) { delete_option($option); }
+            delete_transient('asm_mcp_cimd_'.$hash);
+            return $fresh;
+        }
+        if ($existing && is_array($last) && is_array($last['doc']??null) && $at>time()-30*86400 && $at<=time()) {
+            // Opcję można zmienić spoza tej klasy, więc kopia przechodzi tę samą walidację co świeży dokument.
+            $doc=self::validate($last['doc'],true);
+            if (!is_wp_error($doc)) { return $doc; }
+        }
+        return $fresh;
+    }
+    private static function downloadCIMD(string $id) {
         if (!self::transportAvailable()) { return self::error('invalid_client'); }
         // Metadata grants a choice from the current server catalog, not old tokens.
         $cacheKey='asm_mcp_cimd_'.hash('sha256',$id.'|'.implode(' ',array_keys(Policy::SCOPES)));
         $cached=get_transient($cacheKey);
         if (is_array($cached)) { return $cached; }
         $records=@dns_get_record('claude.ai',DNS_A|DNS_AAAA);
-        if (!$records) { error_log('ASM MCP: nie można odczytać publicznych adresów DNS dokumentu Claude.'); return self::error('invalid_client'); }
+        if (!$records) { error_log('ASM MCP: nie można odczytać publicznych adresów DNS dokumentu Claude.'); return self::error('temporarily_unavailable',503); }
         $addresses=[];
         foreach ($records as $record) {
             $ip=$record['ip']??$record['ipv6']??null;
@@ -122,13 +150,16 @@ final class OAuthClients {
             if (!self::publicIP($ip)) { return self::error('invalid_client'); }
             $addresses[]=$ip;
         }
-        if (!$addresses) { return self::error('invalid_client'); }
+        if (!$addresses) { return self::error('temporarily_unavailable',503); }
         $body=''; $oversized=false; $curl=curl_init($id);
-        if ($curl===false) { return self::error('invalid_client'); }
+        if ($curl===false) { return self::error('temporarily_unavailable',503); }
         $pinned=array_map(static fn($ip)=>str_contains($ip,':')?'['.$ip.']':$ip,array_unique($addresses));
         $configured=curl_setopt_array($curl,[CURLOPT_RESOLVE=>['claude.ai:443:'.implode(',',$pinned)],CURLOPT_FOLLOWLOCATION=>false,CURLOPT_MAXREDIRS=>0,CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_REDIR_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_PROXY=>'',CURLOPT_NOPROXY=>'*',CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_TIMEOUT=>5,CURLOPT_HTTPHEADER=>['Accept: application/json'],CURLOPT_WRITEFUNCTION=>static function($handle,string $chunk) use (&$body,&$oversized): int { if (strlen($body)+strlen($chunk)>16384) { $oversized=true; return 0; } $body.=$chunk; return strlen($chunk); }]);
-        if (!$configured) { curl_close($curl); return self::error('invalid_client'); }
-        $ok=curl_exec($curl); $status=curl_getinfo($curl,CURLINFO_RESPONSE_CODE); $type=curl_getinfo($curl,CURLINFO_CONTENT_TYPE); $peer=curl_getinfo($curl,CURLINFO_PRIMARY_IP); curl_close($curl);
+        if (!$configured) { curl_close($curl); return self::error('temporarily_unavailable',503); }
+        $ok=curl_exec($curl); $status=(int)curl_getinfo($curl,CURLINFO_RESPONSE_CODE); $type=curl_getinfo($curl,CURLINFO_CONTENT_TYPE); $peer=curl_getinfo($curl,CURLINFO_PRIMARY_IP); curl_close($curl);
+        // Chwilowe: brak odpowiedzi, przeciążenie i 403 (zapora po stronie claude.ai blokuje adres hostingu; wycofany dokument to 404 albo 410).
+        // Zerwany transfer też jest chwilowy, nawet po nagłówku 200; przekroczony rozmiar nie.
+        if (!$oversized && ($ok===false || in_array($status,[403,408,425,429],true) || $status>=500)) { error_log('ASM MCP: dokument klienta Claude chwilowo niedostępny (HTTP '.$status.').'); return self::error('temporarily_unavailable',503); }
         if ($ok===false || $oversized || $status!==200 || !is_string($type) || !preg_match('~^application/(?:[a-z0-9.+-]+\+)?json(?:\s*;|$)~i',$type) || !in_array($peer,$addresses,true)) { return self::error('invalid_client'); }
         $document=json_decode($body,true,16);
         if (!is_array($document) || ($document['client_id']??null)!==$id || !isset($document['grant_types'],$document['response_types'],$document['token_endpoint_auth_method']) || !is_array($document['grant_types']) || !is_array($document['response_types']) || !in_array('refresh_token',$document['grant_types'],true)) { return self::error('invalid_client'); }

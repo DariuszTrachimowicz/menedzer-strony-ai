@@ -36,4 +36,8 @@ if (is_object($role) && method_exists($role, 'remove_cap')) {
     $role->remove_cap('asm_full_control');
 }
 
+// delete_option czyści też trwałą pamięć podręczną opcji.
+foreach ($wpdb->get_col($wpdb->prepare("SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like('asm_mcp_cimd_ok_') . '%')) as $name) {
+    delete_option($name);
+}
 update_option('asm_uninstalled_at', gmdate('c'), false);

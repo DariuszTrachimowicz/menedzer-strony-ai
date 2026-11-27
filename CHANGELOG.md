@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.9.1, 27 listopada 2026
+
+- OAuthClients::downloadCIMD (dawne fetchCIMD): chwilowy błąd pobrania dokumentu klienta Claude (brak DNS, brak odpowiedzi, HTTP 403, 408, 425, 429, 5xx) zwraca `temporarily_unavailable` 503 zamiast `invalid_client`. Pozostałe wyniki (404, 410, przekierowanie, zły typ treści, za duża odpowiedź, adres spoza listy, błędna treść, prywatny adres w DNS) nadal odrzucają klienta.
+- OAuthClients::fetchCIMD: punkt tokenów (wymiana kodu, odświeżenie, cofnięcie) przy chwilowym błędzie korzysta z ostatniego poprawnego dokumentu z opcji `asm_mcp_cimd_ok_<skrót>`, osobnej dla każdego dokumentu (do 30 dni, po ponownej walidacji). Ekran zgody kopii nie używa: nowa zgoda wymaga świeżego dokumentu, a przy chwilowym błędzie pokazuje 503 z prośbą o ponowienie. Odrzucony dokument usuwa kopię.
+- OAuthGrant::locked: odmowa `invalid_grant` przy odświeżeniu zapisuje w audycie zdarzenie `oauth.refresh_denied` z powodem ustalonym w gałęzi, która odrzuciła żądanie (denied_revoked, denied_deleted, denied_expired, denied_binding, denied_role, denied_scope, denied_replay, denied_request, denied_unknown), po transakcji i pod blokadą połączenia, najwyżej raz na godzinę na połączenie. Nieznany token nie zostawia wpisu. Zapis jest tylko wtedy, gdy klient faktycznie dostał `invalid_grant`.
+- OAuthGrant: błąd bazy przy oznaczaniu kodu albo tokenu jako zużytego daje 503 (klient ponawia), a nie `invalid_grant`.
+- OAuthController: chwilowy błąd dokumentu Claude przy zatwierdzaniu zgody daje 503 zamiast 403 „sprawdź uprawnienia”.
+- Admin: etykiety nowego zdarzenia i powodów w zakładce Aktywność. uninstall.php usuwa opcje `asm_mcp_cimd_ok_*`.
+- Testy: tests/mcp/test-cimd-fallback.php, tests/integration/refresh-denial.php.
+
 ## 2.9.0, 19 listopada 2026
 
 - Popup wydzielony do wtyczki Digital Xperts Popup (osobne repozytorium): usunięte src/Popup, assets/popup*, zakładka Popup, wiersz w widżecie kokpitu, przełącznik w mcp-admin.js, style wyboru stylu w mcp-admin.css, migracja autoload asm_popup w Installer, tests/popup (przeniesiony).

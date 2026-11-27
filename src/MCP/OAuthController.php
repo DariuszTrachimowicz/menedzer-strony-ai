@@ -60,7 +60,7 @@ final class OAuthController {
         if (!OAuthClients::rate($endpoint,60) || !OAuthClients::rate($endpoint,1000,60,true)) { return self::response(OAuthClients::error('temporarily_unavailable',429)); }
         $fields=self::form($body);
         if ($fields===null || !isset($fields['client_id'])) { return self::response(OAuthClients::error()); }
-        $client=OAuthClients::resolve($fields['client_id']);
+        $client=OAuthClients::resolve($fields['client_id'],true);
         if (is_wp_error($client)) { return self::response($client); }
         try {
             if ($endpoint==='revoke') {
@@ -116,6 +116,7 @@ final class OAuthController {
         $fields=wp_unslash($method==='POST'?$_POST:$_GET);
         $validated=self::validateAuthorization($fields);
         if (is_wp_error($validated)) {
+            if ($validated->get_error_code()==='temporarily_unavailable') { status_header(503); header('Retry-After: 120'); echo 'Serwer strony chwilowo nie może pobrać dokumentu aplikacji Claude. Nie udzielono dostępu. Spróbuj ponownie za kilka minut. Jeśli błąd wraca, administrator serwera powinien sprawdzić DNS i połączenie HTTPS z claude.ai.'; exit; }
             status_header(400);
             if ($validated->get_error_code()==='invalid_client' && is_string($fields['client_id']??null) && in_array($fields['client_id'],OAuthClients::CIMD,true)) { echo 'Nie można potwierdzić dokumentu aplikacji Claude. Nie udzielono dostępu. Administrator serwera powinien sprawdzić DNS i połączenie HTTPS. Jeśli aplikacja obsługuje automatyczną rejestrację klienta (DCR), można skorzystać z tego sposobu połączenia.'; }
             else { echo 'Nieprawidłowe żądanie logowania. Wróć do aplikacji i dodaj połączenie ponownie.'; }
@@ -148,6 +149,7 @@ final class OAuthController {
                 if ($expiry<=time() || $expiry>time()+366*86400) { status_header(400); echo 'Wybierz przyszłą datę, najwyżej za rok.'; exit; }
             } elseif (($request['expiry_mode']??'')!=='unlimited') { status_header(400); echo 'Wybierz termin dostępu.'; exit; }
             $code=OAuthGrant::issueCode($request,$request['selected_scope'],$expiry);
+            if (is_wp_error($code) && $code->get_error_code()==='temporarily_unavailable') { status_header(503); header('Retry-After: 120'); echo 'Serwer strony chwilowo nie może pobrać dokumentu aplikacji Claude. Nie udzielono dostępu. Wróć do aplikacji i za kilka minut zacznij łączenie od nowa.'; exit; }
             if (is_wp_error($code)) { status_header(403); echo 'Nie można udzielić tego dostępu. Sprawdź uprawnienia i spróbuj ponownie.'; exit; }
             self::callback($request,['code'=>$code]);
         }
