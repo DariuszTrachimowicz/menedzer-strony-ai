@@ -8,6 +8,18 @@ use ASM\Operations\OperationFailure;
 
 final class ContentResource
 {
+    /**
+     * Pola SEO, które mają w nazwie „key”, ale nie są sekretem (fraza kluczowa).
+     * Tylko dokładne nazwy: reszta reguły redakcji zostaje bez zmian.
+     */
+    private const PUBLIC_META_KEYS = array(
+        '_dxsm_seo_keyphrase',
+        'rank_math_focus_keyword',
+        '_yoast_wpseo_focuskeywords',
+    );
+
+    private const LIST_META_LIMIT = 20;
+
     private string $mode;
 
     public function __construct(string $mode = 'update')
@@ -29,9 +41,21 @@ final class ContentResource
             'order' => 'DESC',
         ));
 
+        $metaKeys = $this->listMetaKeys($params['meta_keys'] ?? array());
         $items = array();
         foreach ($query->posts as $post) {
-            $items[] = $this->publicPost($post);
+            $item = $this->publicPost($post);
+            if ($metaKeys) {
+                $meta = array();
+                foreach ($metaKeys as $metaKey) {
+                    $values = get_post_meta((int) $post->ID, $metaKey);
+                    if ($values) {
+                        $meta[$metaKey] = $values;
+                    }
+                }
+                $item['meta'] = $this->redactedMeta($meta);
+            }
+            $items[] = $item;
         }
         return $items;
     }
@@ -339,11 +363,43 @@ final class ContentResource
     private function redactedMeta(array $meta): array
     {
         foreach ($meta as $key => $value) {
-            if (preg_match('/pass|password|secret|token|key|salt|session/i', (string) $key)) {
+            if (self::isRedactedMetaKey((string) $key)) {
                 $meta[$key] = '[REDACTED]';
             }
         }
         return $meta;
+    }
+
+    public static function isRedactedMetaKey(string $key): bool
+    {
+        if (in_array($key, self::PUBLIC_META_KEYS, true)) {
+            return false;
+        }
+        return preg_match('/pass|password|secret|token|key|salt|session/i', $key) === 1;
+    }
+
+    /**
+     * Lista meta do dołączenia w list(): dokładne nazwy, bez wzorców, najwyżej LIST_META_LIMIT.
+     *
+     * @param mixed $raw
+     * @return array<int,string>
+     */
+    private function listMetaKeys($raw): array
+    {
+        if (is_string($raw)) {
+            $raw = explode(',', $raw);
+        }
+        if (! is_array($raw)) {
+            return array();
+        }
+        $keys = array();
+        foreach ($raw as $key) {
+            $key = trim((string) $key);
+            if ($key !== '' && preg_match('/^[A-Za-z0-9_\-]{1,191}$/', $key) === 1) {
+                $keys[$key] = $key;
+            }
+        }
+        return array_slice(array_values($keys), 0, self::LIST_META_LIMIT);
     }
 
     /** @param mixed $result */

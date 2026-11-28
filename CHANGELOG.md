@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.9.3, 28 listopada 2026
+
+- ContentResource: fraza kluczowa SEO nie jest już ukrywana jako sekret. Reguła redakcji meta łapała „key” w `_dxsm_seo_keyphrase` (także `rank_math_focus_keyword`, `_yoast_wpseo_focuskeywords`). Wyjątek obejmuje tylko te dokładne nazwy; reszta reguły bez zmian.
+- ContentResource::list: opcjonalny parametr `meta_keys` (tablica albo lista po przecinku, dokładne nazwy, najwyżej 20) dołącza wybrane meta do każdego wpisu, z tą samą redakcją co `get`. Pozwala pobrać meta SEO wielu wpisów jednym wywołaniem.
+- Test: tests/content/test-meta-redaction.php.
+
 ## 2.9.2, 27 listopada 2026
 
 - OAuthClients::downloadCIMD: odebrany status 404 albo 410 jest rozstrzygany przed obsługą błędu transferu (`curl_exec` false po nagłówkach), więc daje `invalid_client` i usuwa kopię oraz pamięć godzinną. Test: przypadki „410 z zerwanym transferem” i „404 z zerwanym transferem”.

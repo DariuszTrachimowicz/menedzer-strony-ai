@@ -1,4 +1,4 @@
-# Menedżer Strony AI 2.9.2
+# Menedżer Strony AI 2.9.3
 
 Wtyczka udostępnia kontrolowane API do odczytu i zarządzania instalacją WordPressa. Każda zmiana przechodzi przez cztery etapy: preview, execute, verify i opcjonalny rollback.
 
